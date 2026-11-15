@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Аегис</title>
+<meta name="theme-color" content="#5a3fd8">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Аегис"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-column phone app, sticky header, fixed bottom tab bar with 5 sections */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --tile:#e3e6ec; --ink:#14161d; --muted:#6b7280; --line:#d7dae1;
+  --accent:#5a3fd8; --accent-soft:#e9e5fb; --blue:#1769e0; --blue-soft:#e6f0fd;
+  --good:#2e9e4f; --warn:#e8a317; --bad:#d9433f; --off:#cfd3db;
+  --font:'Onest',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101218; --surface:#1a1d26; --tile:#232733; --ink:#eceef3; --muted:#9aa1b0; --line:#2e3340;
+  --accent:#9b87ff; --accent-soft:#2a2550; --blue:#5b9bff; --blue-soft:#17294a;
+  --good:#52c277; --warn:#f0b83a; --bad:#f06a66; --off:#3a3f4d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101218; --surface:#1a1d26; --tile:#232733; --ink:#eceef3; --muted:#9aa1b0; --line:#2e3340;
+  --accent:#9b87ff; --accent-soft:#2a2550; --blue:#5b9bff; --blue-soft:#17294a;
+  --good:#52c277; --warn:#f0b83a; --bad:#f06a66; --off:#3a3f4d; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.35;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 96px;
+  font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.app{max-width:560px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg);padding:14px 0 8px;display:flex;flex-direction:column;gap:10px}
+h1{font-size:26px;font-weight:700;margin:0;letter-spacing:-.01em}
+.seg{display:flex;background:var(--tile);border-radius:14px;padding:3px;gap:2px}
+.seg button{flex:1;border:0;background:none;color:var(--accent);font:600 14px var(--font);padding:9px 6px;border-radius:11px;cursor:pointer;min-width:0}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.asof{display:flex;gap:10px;align-items:center;background:var(--tile);border-radius:14px;padding:11px 14px;color:var(--muted);font-size:14px}
+.asof b{color:var(--ink);font-weight:600}
+.asof svg{flex:none}
+select,input[type=number],input[type=text],input[type=url],input[type=password]{font:500 15px var(--font);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0;width:100%}
+select{width:auto;max-width:100%}
+button:focus-visible,select:focus-visible,input:focus-visible,.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{display:flex;flex-direction:column;gap:12px;padding-top:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--tile);border-radius:26px;padding:14px 14px 0;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.tile h3{margin:0;font-size:15px;font-weight:600;line-height:1.2;min-height:36px}
+.tile .big{font-size:25px;font-weight:700;margin-top:14px;letter-spacing:-.01em}
+.tile .lbl{color:var(--muted);font-size:12px;font-weight:500}
+.tile .sub{font-size:13px;margin-bottom:6px;color:var(--ink)}
+.tile .ln b{color:var(--ink)}
+.tile .pair{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.tile .ln{border-top:1px solid var(--line);padding:6px 0;display:flex;justify-content:space-between;gap:6px;font-size:13px;font-weight:600}
+.tile .ln span{color:var(--muted);font-weight:500}
+.dots{display:grid;grid-template-columns:repeat(22,1fr);gap:3px;margin:8px -4px 12px}
+.dots i{aspect-ratio:1;border-radius:50%;background:var(--off);display:block}
+.dots i.on{background:var(--c)}
+.good{--c:var(--good);color:var(--good)} .warn{--c:var(--warn);color:var(--warn)} .bad{--c:var(--bad);color:var(--bad)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h3{margin:0;font-size:18px;font-weight:600}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.cols .v{font-size:26px;font-weight:700;letter-spacing:-.01em}
+.cols .v small{font-size:14px;font-weight:600;margin-left:3px}
+.cols .f{color:var(--muted);font-size:13px}
+.bar{height:7px;border-radius:5px;background:var(--tile);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:5px}
+.bar.good i{background:var(--good)} .bar.warn i{background:var(--warn)} .bar.bad i{background:var(--bad)}
+.muted{color:var(--muted);font-size:13px}
+.hint{color:var(--muted);font-size:13px;padding:0 4px}
+.sect{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 4px 0}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:13px 16px;border-top:1px solid var(--line);cursor:pointer;width:100%;text-align:left;background:none;border-left:0;border-right:0;border-bottom:0;color:inherit;font:inherit}
+.row:first-child{border-top:0}
+.row .n{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.row .r{text-align:right}
+.row.me{background:var(--blue-soft)}
+.badge{display:inline-block;border:2px solid var(--blue);color:var(--blue);border-radius:12px;padding:3px 10px;font-weight:600;font-size:14px;min-width:46px;text-align:center}
+.chip{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;background:var(--tile)}
+.chip.good{background:color-mix(in srgb,var(--good) 18%,transparent)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 22%,transparent)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 18%,transparent)}
+.detail{grid-column:1/-1;display:none;flex-direction:column;gap:8px;padding-top:8px;cursor:default}
+.open .detail{display:flex}
+.drow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px}
+.drow .nm{font-weight:500}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{padding:8px 6px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left;white-space:normal}
+.tbl th{font-weight:600;color:var(--muted);border-top:0;font-size:12px}
+.scroll{overflow-x:auto}
+/* таблица «По офису»: название отдельной строкой, пять колонок с цифрами на всю ширину, прокрутки вбок нет */
+.card.fitc{padding:10px 8px}
+.tbl.fit{table-layout:fixed;font-size:13px;font-variant-numeric:tabular-nums}
+.tbl.fit th,.tbl.fit td{padding:6px 2px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.tbl.fit th{white-space:normal;font-size:10.5px;line-height:1.15;vertical-align:bottom}
+.tbl.fit tr.nm td{text-align:left;white-space:normal;padding:10px 4px 0;border-top:1px solid var(--line);font-weight:600;font-size:13px}
+.tbl.fit tr.nm td .muted{font-weight:400;font-size:11px;margin-left:4px}
+.tbl.fit tr.nm+tr td{border-top:0;padding-top:3px;padding-bottom:6px}
+.tbl.fit thead th{border-top:0}
+@media (max-width:359px){.tbl.fit{font-size:12px}.tbl.fit th{font-size:9.5px}}}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid var(--line)}
+.switch:first-child{border-top:0}
+.tog{width:50px;height:30px;border-radius:15px;border:0;background:var(--off);position:relative;cursor:pointer;flex:none}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .15s}
+.tog[aria-pressed="true"]{background:var(--accent)}
+.tog[aria-pressed="true"]::after{transform:translateX(20px)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.stat b{display:block;font-size:22px;font-weight:700}
+.stat span{color:var(--muted);font-size:12px}
+.field{display:grid;grid-template-columns:1fr minmax(0,120px);gap:10px;align-items:center;padding:8px 16px;border-top:1px solid var(--line)}
+.field:first-child{border-top:0}
+.btn{font:600 14px var(--font);border:0;border-radius:12px;padding:11px 14px;background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:var(--tile);color:var(--ink)}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 20px var(--font);cursor:pointer}
+.stepper b{min-width:2ch;text-align:center;font-size:20px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--surface);border-top:1px solid var(--line);
+  padding:8px max(8px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));display:flex;justify-content:center}
+nav.tabs .in{display:flex;width:100%;max-width:560px;gap:2px}
+nav.tabs button{flex:1;border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font:500 11px var(--font);padding:7px 2px;border-radius:16px;cursor:pointer;min-width:0}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+/* перестановка блоков на вкладке «Цели» */
+.tile{position:relative}
+.grip{display:none;position:absolute;top:6px;right:6px;width:44px;height:44px;border-radius:14px;align-items:center;justify-content:center;color:var(--muted);background:color-mix(in srgb,var(--surface) 70%,transparent);touch-action:none;cursor:grab;z-index:2;-webkit-user-select:none;user-select:none}
+.grip svg{width:22px;height:22px;pointer-events:none}
+.editing .grip{display:flex}
+.editing .tile{outline:2px dashed var(--line);outline-offset:-2px}
+.editing .tile h3{padding-right:40px}
+.tile.drag{position:fixed;z-index:30;margin:0;box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:.96;pointer-events:none;transform:scale(1.03)}
+.tile-ph{border-radius:26px;border:2px dashed var(--accent);background:var(--accent-soft);opacity:.7}
+.upd{display:flex;flex-direction:column;gap:8px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:16px;padding:12px 14px;font-size:14px}
+.upd b{font-weight:700}.upd .lnk{word-break:break-all;font-size:12px;color:var(--muted);user-select:all}
+.upd .row2{display:flex;gap:8px;flex-wrap:wrap}.upd .btn{padding:9px 12px}
+.viewer .tog,.viewer .stepper button{pointer-events:none;opacity:.6}
+.ordbar{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.ordbar .btn{padding:9px 14px}
+body.dragging{-webkit-user-select:none;user-select:none;overscroll-behavior:contain}
+@media (max-width:380px){.dots{grid-template-columns:repeat(18,1fr)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.note{display:flex;align-items:center;justify-content:space-between;gap:10px;background:color-mix(in srgb,var(--good) 16%,var(--surface));border:1px solid var(--good);border-radius:16px;padding:10px 12px 10px 14px;font-size:14px}
+.note b{font-weight:700}.note .btn{padding:8px 14px;flex:none}
+.imp{border-radius:14px;padding:10px 12px;background:var(--tile);border-left:4px solid var(--muted);font-size:13px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.imp b{font-size:14px}.imp ul{margin:0;padding-left:18px}.imp li{margin:2px 0}
+.imp.err{border-left-color:var(--bad)}.imp.ok{border-left-color:var(--good)}.imp.ask{border-left-color:var(--warn)}
+.imp .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.hsel{display:grid;gap:8px}
+.stale{background:color-mix(in srgb,var(--warn) 18%,var(--surface));border:1px solid var(--warn);border-radius:16px;padding:10px 14px;font-size:14px}
+.stale b{font-weight:700}
+/* iOS: без автоприближения при фокусе в поле, перетаскивание плиток пальцем, без подсветки касаний */
+@supports(-webkit-touch-callout:none){input,select,textarea{font-size:16px!important}}
+.grip{touch-action:none}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1 id="title">Цели</h1>
+    <div id="ctrl"></div>
+    <div id="updbar"></div>
+    <div class="asof"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="dayinfo"></span></div>
+  </header>
+  <main id="view"></main>
+</div>
+<nav class="tabs" aria-label="Разделы"><div class="in" id="tabs"></div></nav>
+
+<script src="xlsx.full.min.js"></script>
+<script>
+const DATA = {"main":{"names":["СУП","SIM","ШПД","ТВ","ФВ","АКС","Мой Билайн","Заявки Апельсин","Транзакции Апельсин"],"office":[0,0,0,0,0,0,0,0,0],"emps":[]},"brand":{"names":["Телефоны","Huawei","Samsung","Realme + Oppo","Качественные SIM","Яндекс.Адаптер","Настройки и страховки"],"office":[0,0,0,0,0,0,0],"fact":{}}};
+
+// Показатели: подписи, единицы. Индексы совпадают с колонками листов «План-Факт» и «План-Факт (бренды)».
+const MAIN = [
+ {n:'СУП',u:'УП',d:1},{n:'Gross SIM',u:'шт.'},{n:'ШПД',u:'шт.',d:1},{n:'Товарная выручка',u:'руб.'},
+ {n:'Финансовая выручка',u:'руб.'},{n:'Аксессуары',u:'руб.'},{n:'Мой Билайн',u:'шт.'},{n:'Заявки Апельсин',u:'шт.'},{n:'Транзакции Апельсин',u:'шт.'}];
+const BR = [{u:'руб.'},{u:'руб.'},{u:'руб.'},{u:'руб.'},{u:'шт.'},{u:'шт.'},{u:'руб.'}];
+const KEY='planfact-office-v1';
+const APP_VERSION=13; // при выпуске новой сборки увеличьте на 1 (2 -> 3 -> ...)
+
+function fresh(){
+  const emps=DATA.main.emps.map(e=>({name:e.name,tn:e.tn,hours:e.hours,m:e.fact.slice(),b:DATA.brand.fact[e.tn].slice()})); // в веб-версии список сотрудников приходит только с сервера
+  const now=new Date(), dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  return {passed:8,month:dim,me:'',scope:'me',target:1.1,cap:1.5,t1:0.9,t2:0.7,t3:0.5,
+    officeM:DATA.main.office.slice(),officeB:DATA.brand.office.slice(),emps,shifts:{},man:{},targets:{}};
+}
+let S=fresh();
+try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.emps)S=Object.assign(fresh(),o)}}catch(e){}
+try{const g=localStorage.getItem(KEY+'-g');if(g&&!S.rawG)S.rawG=JSON.parse(g)}catch(e){}
+// ---------- синхронизация между телефонами (Google Apps Script), только в установленном приложении ----------
+const IS_WEB=location.protocol!=='file:'; // веб-версия: обновляется сама, APK не нужен
+const IS_APP=true; // синхронизация доступна и в вебе (запросы к Google Apps Script идут обычным fetch)
+const DEFAULT_SY={url:'',key:''}; // сюда можно вписать ссылку и ключ, тогда новые установки сразу будут подключены
+let SY={url:DEFAULT_SY.url,key:DEFAULT_SY.key,pw:''};
+try{SY=Object.assign(SY,JSON.parse(localStorage.getItem('cpu2-sync')||'{}'))}catch(e){}
+let syMsg='',lastSent='',pushT=null;
+const syOn=()=>IS_APP&&SY.url&&SY.key;
+// роли: если настроена синхронизация, то править может только тот, у кого введён пароль администратора; остальные только смотрят
+const canEdit=()=>!syOn()||!!SY.pw;
+let syTs=0,syFail=false;
+// вход сотрудника по табельному номеру и ПИН-коду (мягкая защита: данные всё равно лежат на сервере общим файлом)
+let LOGIN=null;try{LOGIN=JSON.parse(localStorage.getItem('cpu2-login')||'null')}catch(e){}
+const hasPins=()=>S.pins&&Object.values(S.pins).some(x=>String(x||'').length>0);
+const validLogin=()=>!!(LOGIN&&LOGIN.tn&&S.pins&&String(S.pins[LOGIN.tn]||'')!==''&&String(S.pins[LOGIN.tn])===String(LOGIN.pin)&&S.emps.some(e=>e.tn===LOGIN.tn));
+const needLogin=()=>syOn()&&!SY.pw&&hasPins()&&!validLogin();
+const lockTn=()=>(syOn()&&!SY.pw&&hasPins()&&validLogin())?LOGIN.tn:null;
+let loginMsg='';
+// плашка «Данные обновлены в …»: показывается телефонам без пароля администратора, когда на сервере появились более новые данные
+let SEEN=0,NOTE=0;try{SEEN=Number(localStorage.getItem('cpu2-seen')||0)||0}catch(e){}
+const setSeen=t=>{SEEN=t;try{localStorage.setItem('cpu2-seen',String(t))}catch(e){}};
+function whenStr(ts){
+  const d=new Date(ts),n=new Date(),hm=d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  const diff=Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/864e5);
+  return diff===0?'в '+hm:diff===1?'вчера в '+hm:d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+' в '+hm;
+}
+function noteBar(){
+  if(!NOTE||SY.pw)return '';
+  return `<div class="note" role="status"><div><b>Данные обновлены ${whenStr(NOTE)}</b>${S.asof?'<br><span class="muted">продажи по '+fmtDay(S.asof)+'</span>':''}</div><button class="btn ghost" data-a="noteOk">Ок</button></div>`;
+}
+// напоминание об устаревших данных: админу всегда, сотрудникам, если админ включил
+const staleN=()=>S.staleDays==null?2:S.staleDays;
+function staleDays(){if(!S.asof)return 0;const [y,m,d]=S.asof.split('-').map(Number),n=new Date();return Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-new Date(y,m-1,d))/864e5)}
+function staleBar(){
+  const lim=staleN();if(!lim||!S.asof)return '';
+  if(!canEdit()&&!S.staleAll)return '';
+  const n=staleDays();if(n<lim)return '';
+  const adm=canEdit();
+  return `<div class="stale" role="status"><b>${adm?`Данные не обновлялись ${n} ${plural(n,'день','дня','дней')}`:'Данные устарели'}</b><br><span class="muted">последние продажи по ${fmtDay(S.asof)}${adm?'. Загрузите свежую выгрузку во вкладке «Ввод».':'. Администратор ещё не загрузил свежие.'}</span></div>`;
+}
+function staleCard(){
+  return `<div class="sect">Напоминание об устаревших данных</div><div class="list"><div class="field"><span>Напомнить, если данным больше (дней)<br><span class="muted">0 = не напоминать</span></span><input type="number" inputmode="numeric" step="1" data-path="staleDays" value="${staleN()}" aria-label="Дней до напоминания"></div>
+  <div class="switch"><span>Показывать сотрудникам<br><span class="muted">у них появится плашка «Данные устарели»</span></span><button class="tog" data-a="staleAll" aria-pressed="${!!S.staleAll}" aria-label="Показывать сотрудникам"></button></div></div>`;
+}
+// ушли из приложения после того, как плашка была на экране: считаем, что её видели
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&NOTE){setSeen(NOTE);NOTE=0}});
+const SHARED=['passed','month','asof','target','targets','cap','t1','t2','t3','officeM','officeB','emps','shifts','man','importedRows','upd','agg','pins','history','staleDays','staleAll','custom'];
+const sharedState=()=>{const st={};for(const k of SHARED)st[k]=S[k];return st};
+let saveErr=false;
+function persist(){
+  const rest=Object.assign({},S);delete rest.rawG;let ok=true;
+  try{localStorage.setItem(KEY,JSON.stringify(rest))}catch(e){ok=false}
+  try{if(S.rawG)localStorage.setItem(KEY+'-g',JSON.stringify(S.rawG));else localStorage.removeItem(KEY+'-g')}catch(e){try{localStorage.removeItem(KEY+'-g')}catch(_){}}
+  saveErr=!ok;return ok;
+}
+function save(skipPush){
+  persist();
+  if(!skipPush&&syOn()&&SY.pw){clearTimeout(pushT);pushT=setTimeout(()=>push(false),1500)}
+}
+function pull(silent){
+  if(!syOn())return;
+  if(!silent){syMsg='Загружаю…';render()}
+  fetch(SY.url+(SY.url.includes('?')?'&':'?')+'k='+encodeURIComponent(SY.key)).then(r=>r.json()).then(j=>{
+    if(!j.ok)throw new Error(j.error==='key'?'неверный ключ':'ответ сервера');
+    const d=j.data;
+    if(!d||!d.state){syFail=false;if(!silent){syMsg='На сервере пока нет данных. Выгрузите их с телефона администратора.'}render();return}
+    const wasFail=syFail;syFail=false;
+    const fresh=d.ts!==syTs; // данные на сервере не менялись: ничего не перерисовываем
+    if(fresh||!silent){
+      for(const k of SHARED)if(d.state[k]!==undefined)S[k]=d.state[k];
+      if(S.emps.length&&!S.emps.some(e=>e.tn===S.me))S.me=S.emps[0].tn;
+      syTs=d.ts;save(true);
+      if(!SY.pw&&d.ts){if(!SEEN)setSeen(d.ts);else if(d.ts>SEEN)NOTE=d.ts} // первый запуск: плашку не показываем
+      syMsg='Данные обновлены: '+new Date(d.ts).toLocaleString('ru-RU')+'.';
+    }
+    startPoll(); // первое подключение с этого устройства: дальше данные подтягиваются сами
+    if(fresh||!silent||wasFail)render();
+  }).catch(e=>{syFail=true;render();if(!silent){syMsg='Не удалось получить данные: '+e.message+'. Проверьте интернет и ссылку.';render()}});
+}
+function push(force){
+  if(!(syOn()&&SY.pw))return;
+  if(!S.emps.length)return; // пустое состояние (данные ещё не получены) не должно затирать данные на сервере
+  const body=JSON.stringify({pw:SY.pw,state:sharedState()});
+  if(!force&&body===lastSent)return;
+  fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body}).then(r=>r.json()).then(j=>{
+    if(j.ok){lastSent=body;syMsg='Отправлено на сервер: '+new Date(j.ts).toLocaleString('ru-RU')+'.'}
+    else syMsg=j.error==='pw'?'Неверный пароль администратора.':'Ошибка сервера.';
+    render();
+  }).catch(e=>{syMsg='Не удалось отправить: '+e.message;render()});
+}
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+function updBanner(){
+  const u=S.upd;
+  if(IS_WEB||!u||!(Number(u.v)>APP_VERSION)||S.updSkip===Number(u.v))return '';
+  return `<div class="upd" role="status"><div><b>Доступна новая версия ${esc(u.v)}</b> (у вас ${APP_VERSION})${u.notes?'<br>'+esc(u.notes):''}</div>
+  ${u.url?`<div class="lnk">${esc(u.url)}</div>`:''}
+  <div class="row2">${u.url?'<button class="btn" data-a="updCopy">Скопировать ссылку</button>':''}<button class="btn ghost" data-a="updSkip">Позже</button></div>
+  ${u.url?'<div class="muted">Откройте ссылку в браузере телефона, скачайте файл и установите поверх.</div>':''}</div>`;
+}
+function updCard(){
+  if(IS_WEB||!(IS_APP&&SY.pw))return '';
+  const u=S.upd||{};
+  return `<div class="sect">Выпуск обновления</div><div class="card"><p class="muted" style="margin:0">Этой сборке номер ${APP_VERSION}. Когда выложите новый APK, впишите его номер (больше текущего) и ссылку на скачивание: на телефонах с меньшей версией появится баннер. Данные уходят вместе с остальными при отправке на сервер.</p>
+  <input type="number" inputmode="numeric" data-path="upd.v" value="${u.v==null?'':esc(u.v)}" placeholder="Номер новой версии, например ${APP_VERSION+1}" aria-label="Номер версии">
+  <input type="url" data-path="upd.url" value="${esc(u.url||'')}" placeholder="Ссылка на APK" aria-label="Ссылка на APK">
+  <input type="text" data-path="upd.notes" value="${esc(u.notes||'')}" placeholder="Что нового (необязательно)" aria-label="Что нового">
+  <button class="btn ghost" data-a="updClear">Убрать баннер у всех</button></div>`;
+}
+function logoutCard(){
+  const e=S.emps.find(x=>x.tn===LOGIN.tn);
+  return `<div class="sect">Аккаунт</div><div class="card"><div>Вы вошли как <b>${esc(e?e.name:LOGIN.tn)}</b></div><button class="btn ghost" data-a="logout">Выйти</button></div><p class="hint">Режим просмотра: планы и данные задаёт администратор, они подтягиваются сами.</p>`;
+}
+function pinCard(){
+  if(!(IS_APP&&SY.pw))return '';
+  const rows=S.emps.filter(hasData).map(e=>`<div class="field"><span>${esc(e.name)}<br><span class="muted">${e.tn}</span></span><input type="text" inputmode="numeric" maxlength="8" data-path="pins.${e.tn}" value="${esc((S.pins||{})[e.tn]||'')}" placeholder="ПИН" aria-label="ПИН ${esc(e.name)}"></div>`).join('');
+  return `<div class="sect">Вход сотрудников по ПИН-коду</div><div class="card"><p class="muted" style="margin:0">Когда задан хотя бы один ПИН, остальные телефоны (без пароля администратора) просят войти: табельный номер и ПИН, и показывают только данные этого сотрудника. Раздайте ПИН людям сами. Пустое поле = человек не сможет войти.</p><div class="list">${rows}</div><button class="btn ghost" data-a="pinGen">Создать недостающие ПИН</button><button class="btn ghost" data-a="pinClear">Отключить вход по ПИН для всех</button></div>`;
+}
+function loginView(){
+  return `<div class="sect">Вход</div><div class="card"><p class="muted" style="margin:0">Введите свой табельный номер и ПИН-код. ПИН выдаёт администратор.</p>
+  <input id="lgTn" type="text" inputmode="numeric" placeholder="Табельный номер" aria-label="Табельный номер" autocomplete="off">
+  <input id="lgPin" type="password" inputmode="numeric" placeholder="ПИН-код" aria-label="ПИН-код" autocomplete="off">
+  <button class="btn" data-a="login">Войти</button><div class="muted" role="status">${esc(loginMsg)}</div></div>
+  <div class="sect">Администратор</div><div class="card"><input id="syPw" type="password" placeholder="Пароль администратора" value="${esc(SY.pw)}" aria-label="Пароль администратора"><div class="muted">Введите пароль, чтобы редактировать данные без ПИН.</div></div>`;
+}
+function syCard(){
+  if(!IS_APP)return '';
+  return `<div class="sect">Синхронизация между телефонами</div><div class="card">
+  <p class="muted" style="margin:0">Ссылка и ключ одинаковые на всех телефонах. Пароль администратора вводите только на своём: с него данные уходят на сервер, остальные телефоны их забирают при открытии. Изменения на других телефонах перезапишутся при обновлении.</p>
+  <input id="syUrl" type="url" placeholder="Ссылка на скрипт (…/exec)" value="${esc(SY.url)}" aria-label="Ссылка на скрипт">
+  <input id="syKey" type="text" placeholder="Ключ чтения" value="${esc(SY.key)}" aria-label="Ключ чтения">
+  <input id="syPw" type="password" placeholder="Пароль администратора (только у вас)" value="${esc(SY.pw)}" aria-label="Пароль администратора">
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-a="pull">Забрать данные</button>${SY.pw?'<button class="btn ghost" data-a="push">Отправить данные</button>':''}</div>
+  <div class="muted" role="status">${syMsg||(syOn()?(SY.pw?'Режим администратора: изменения уходят на сервер сами.':'Режим просмотра: данные подтягиваются сами каждую минуту.'):'Заполните ссылку и ключ.')}</div></div>`;
+}
+let tab='goals', openEmp=null, editOrder=false, addMsg='', delArm=null;
+// тема: auto (как в системе) / light / dark; хранится только на этом телефоне
+let THEME='auto';try{THEME=localStorage.getItem('cpu2-theme')||'auto'}catch(e){}
+function applyTheme(){const r=document.documentElement;if(THEME==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',THEME)}
+applyTheme();
+function themeCard(){
+  const b=(v,n)=>`<button data-a="theme" data-v="${v}" aria-pressed="${THEME===v}">${n}</button>`;
+  return `<div class="sect">Оформление</div><div class="seg" role="group" aria-label="Тема">${b('auto','Как в системе')}${b('light','Светлая')}${b('dark','Тёмная')}</div>`;
+}
+function addCard(){
+  const known=S.agg?Object.keys(S.agg).filter(tn=>!S.emps.some(e=>e.tn===tn)):[];
+  return `<div class="sect">Добавить сотрудника</div><div class="card"><p class="muted" style="margin:0">Введите табельный номер: приложение найдёт продажи этого человека в последней загруженной детализации. Сначала загрузите файл выше, если ещё не загружали.</p>
+  <input id="addTn" type="text" inputmode="numeric" placeholder="Табельный номер" aria-label="Табельный номер">
+  <input id="addHours" type="number" inputmode="decimal" placeholder="Часы за месяц (для плана)" aria-label="Часы за месяц">
+  <button class="btn" data-a="addEmp">Найти и добавить</button>
+  <div class="muted" role="status">${addMsg||(known.length?'В загруженной выгрузке есть ещё: '+known.map(tn=>S.agg[tn].name+' ('+tn+')').join(', ')+'.':'')}</div></div>`;
+}
+// порядок блоков на вкладке «Цели»: хранится на устройстве, всегда полная перестановка 0..N-1
+function goalOrder(){
+  const n=MAIN.length,o=Array.isArray(S.goalOrder)?S.goalOrder.filter((x,k,a)=>Number.isInteger(x)&&x>=0&&x<n&&a.indexOf(x)===k):[];
+  for(let i=0;i<n;i++)if(!o.includes(i))o.push(i);
+  return o;
+}
+
+/*AGG*/
+// ---------- загрузка детализации: те же правила, что в формулах СУММЕСЛИМН на листах «План-Факт» ----------
+const lk=(pat,t)=>new RegExp('^'+pat.replace(/[.+^${}()|[\]\\]/g,'\\$&').replace(/\*/g,'.*').replace(/\?/g,'.')+'$','i').test(t==null?'':String(t));
+function aggregate(rows){ // rows: [{tn,fio,D,K,L,O,P,R,V,Q}]
+  const out={};
+  for(const r of rows){
+    if(!r.tn)continue;
+    const a=out[r.tn]||(out[r.tn]={name:r.fio||'',m:Array(9).fill(0),b:Array(7).fill(0)});
+    if(r.fio&&!a.name)a.name=r.fio;
+    const R=r.R==null?'':String(r.R).trim();
+    if(R!==''&&!lk('?????-*',R))continue; // заказы интернет-магазинов не учитываются, кроме Билайн (20111-12345678)
+    const D=r.D,K=r.K,mot=lk('Да',r.V),L=r.L,O=r.O,PU=r.P,P=PU*L; // P = сумма строки (цена × кол-во; возврат с кол-вом -1 вычитается)
+    if(mot)a.m[0]+=O;
+    // Gross SIM: все виды сим-карт + акционные, только учтённые в мотивации
+    const isSim=lk('Сим-карта*',D)||lk('Акционная сим-карта*',D);
+    if(mot&&isSim){a.m[1]+=L;if(lk('ДА',r.Q))a.b[4]+=L} // b[4] = качественные SIM
+    // ШПД: только учтённое в мотивации. Подключение = 1, роутер (продажа/рассрочка) = 0,5, заявка на ТВ не считается
+    if(mot&&lk('ШПД (Подключение)',D)&&!lk('*(TV)*',K))a.m[2]+=(lk('Роутер (Продажа)',K)||lk('Роутер (Рассрочка)',K))?0.5*L:L;
+    // Товарная выручка как в ЦПУ: товарные группы без выдач маркетплейсов (заказы 00…) + роутеры из подключений ШПД
+    if(mot&&lk('*Товарная группа*',D)&&!R.startsWith('00'))a.m[3]+=P;
+    if(mot&&lk('ШПД (Подключение)',D)&&(lk('Роутер (Продажа)',K)||lk('Роутер (Рассрочка)',K)))a.m[3]+=P;
+    if(mot){
+      for(const p of ['Аппаратная наклейка пленки*','*Настройки*','Пакет настроек*','*Страхование*','Лицензия/подписка'])if(lk(p,D))a.m[4]+=P;
+      if(lk('*Товарная группа 2*',D))a.m[5]+=P;
+    }
+    if(lk('Мой Билайн',D))a.m[6]+=L;
+    if(lk('Дебетовая карта Альфа Заявка',D))a.m[7]+=L;
+    if(lk('Дебетовая карта Альфа Транзакция',D))a.m[8]+=L;
+    if(mot){
+      if(lk('Товарная группа 1*',D)&&lk('Телефон*',K))a.b[0]+=P;
+      if(lk('Товарная группа*',D)&&!['*Krutoff*','*BoraSCO*','*LuxCase*','*vlp*'].some(x=>lk(x,K))){
+        if(lk('*Huawei*',K))a.b[1]+=P;
+        if(lk('*Samsung*',K))a.b[2]+=P;
+        if(lk('*Realme*',K))a.b[3]+=P;
+        if(lk('*Oppo*',K))a.b[3]+=P;
+      }
+      if(lk('Установка приложений через Яндекс.Адаптер*',D))a.b[5]+=L;
+      for(const p of ['*Настройки*','Пакет настроек*','*Страхование*'])if(lk(p,D)&&!(p==='*Настройки*'&&lk('*наклейк*',K)))a.b[6]+=P;
+    }
+  }
+  for(const a of Object.values(out)){a.m=a.m.map(x=>Math.round(x*100)/100);a.b=a.b.map(x=>Math.round(x*100)/100)}
+  return out;
+}
+/*END*/
+const toNum=v=>{if(typeof v==='number')return v;const f=parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.'));return isFinite(f)?f:0};
+const toDay=v=>{ // дата учёта -> 'YYYY-MM-DD'
+  if(typeof v==='number'&&v>20000&&v<80000)v=new Date(Math.round((v-25569)*864e5));
+  if(v instanceof Date&&!isNaN(v)){const d=new Date(v.getTime()+12*3600e3);return d.toISOString().slice(0,10)}
+  const m=String(v||'').match(/(\d{4})-(\d{2})-(\d{2})/)||String(v||'').match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if(!m)return null;return m[1].length===4?`${m[1]}-${m[2]}-${m[3]}`:`${m[3]}-${m[2]}-${m[1]}`;
+};
+const IMP_REQ={tn:'ТН сотрудника',D:'Категория УП',K:'Продукт',L:'Кол-во',O:'УП',P:'Цена до скидок',R:'Номер заказа',V:'Учтено в мотивации'};
+const IMP_OPT={fio:'ФИО сотр.',A:'Дата учета',Q:'Качественная СИМ'};
+const normH=x=>String(x==null?'':x).replace(/ё/g,'е').replace(/Ё/g,'Е').replace(/\s+/g,' ').trim().toLowerCase();
+class ImpErr extends Error{constructor(title,lines){super(title);this.title=title;this.lines=lines||[]}}
+const plural=(n,a,b,c)=>{const m=n%100,d=n%10;return(m>10&&m<20)?c:d===1?a:(d>=2&&d<=4)?b:c};
+const monthKey=()=>{if(S.asof)return S.asof.slice(0,7);const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')};
+const monthLabel=k=>{const [y,m]=k.split('-').map(Number);const t=new Date(Date.UTC(y,m-1,15)).toLocaleDateString('ru-RU',{month:'long',timeZone:'UTC'});return t.charAt(0).toUpperCase()+t.slice(1)+' '+y};
+let impBox=null,PENDING=null,histMsg='',histArm=null,HIST={k:null,who:'office'};
+// итоги месяца: снимок текущих данных сохраняется в S.history (уходит на сервер вместе с остальным)
+function snapMonth(k){
+  const snap={k,asof:S.asof||null,passed:S.passed,month:S.month,saved:Date.now(),th:totalHours(),officeM:S.officeM.slice(),officeB:S.officeB.slice(),man:Object.assign({},S.man),
+    emps:S.emps.filter(hasData).map(e=>({tn:e.tn,name:e.name,hours:e.hours,m:e.m.slice(),b:e.b.slice()}))};
+  S.history=(S.history||[]).filter(h=>h.k!==k);S.history.push(snap);
+  S.history.sort((x,y)=>x.k<y.k?-1:1);if(S.history.length>24)S.history=S.history.slice(-24);
+  return snap;
+}
+// продажи по позициям (категория + продукт) для поиска своих показателей; хранится только на телефоне администратора
+function buildGroups(rows){
+  const g={};
+  for(const r of rows){
+    const R=r.R==null?'':String(r.R).trim();
+    if(R!==''&&!lk('?????-*',R))continue; // те же правила, что в основных показателях: заказы интернет-магазинов не считаются
+    const D=r.D==null?'':String(r.D),K=r.K==null?'':String(r.K),key=D+'\u0001'+K;
+    const o=g[key]||(g[key]={D,K,t:{}}),a=o.t[r.tn]||(o.t[r.tn]=[0,0]);
+    a[0]+=r.L;a[1]+=r.P*r.L;
+  }
+  for(const o of Object.values(g))for(const a of Object.values(o.t)){a[0]=Math.round(a[0]*100)/100;a[1]=Math.round(a[1])}
+  return g;
+}
+const HOMO={а:'a',в:'b',е:'e',к:'k',м:'m',н:'h',о:'o',р:'p',с:'c',т:'t',у:'y',х:'x'};
+const cmpH=x=>normH(x).replace(/[^a-zа-я0-9]/g,'').replace(/[авекмнорстух]/g,ch=>HOMO[ch]); // без пробелов, дефисов и знаков; русские буквы-двойники = латинские
+function matchGroups(c){
+  const q=c.q||'',w=normH(q).split(' ').filter(Boolean),qc=cmpH(q);if(!w.length||!qc||!S.rawG)return [];
+  return Object.values(S.rawG).filter(o=>{const h=normH(o.D+' '+o.K);return w.every(x=>h.includes(x))||cmpH(o.D+' '+o.K).includes(qc)});
+}
+function similarGroups(q){ // подсказки, если ничего не нашлось: позиции, начинающиеся похоже
+  const qc=cmpH(q).slice(0,3);if(qc.length<2||!S.rawG)return [];
+  const r=[];for(const o of Object.values(S.rawG)){if(cmpH(o.D+' '+o.K).includes(qc)){const n=o.K||o.D;if(n&&!r.includes(n))r.push(n)}if(r.length>=5)break}
+  return r;
+}
+function recalcCustom(){
+  for(const c of S.custom||[]){
+    const gs=matchGroups(c),ix=c.by==='sum'?1:0,v={};
+    for(const o of gs)for(const [tn,a] of Object.entries(o.t))v[tn]=(v[tn]||0)+a[ix];
+    c.vals={};for(const e of S.emps)c.vals[e.tn]=Math.round((v[e.tn]||0)*100)/100;
+    const tot=o=>Object.values(o.t).reduce((a,x)=>a+x[0],0);
+    c.found=gs.length;c.names=gs.slice().sort((x,y)=>tot(y)-tot(x)).slice(0,3).map(o=>o.K||o.D);
+  }
+}
+function parseSales(buf,name){
+  if(!window.XLSX)throw new ImpErr('Не загрузилась библиотека чтения таблиц',['Закройте приложение и откройте снова.']);
+  let wb;
+  try{wb=XLSX.read(buf,{type:'array',cellDates:true})}
+  catch(e){throw new ImpErr('Файл не открывается как таблица',[`«${name}» повреждён, защищён паролем или это не таблица. Откройте его на компьютере, сохраните как .xlsx и загрузите снова.`,'Подробности: '+(e&&e.message||e)])}
+  if(!wb.SheetNames.length)throw new ImpErr('В файле нет листов',[`В «${name}» нет ни одного листа с данными.`]);
+  const order=[...wb.SheetNames].sort((x,y)=>(y==='Детализация продаж')-(x==='Детализация продаж'));
+  const reqKeys=Object.keys(IMP_REQ);let best=null;
+  for(const sn of order){
+    const x=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''});
+    for(let i=0;i<Math.min(x.length,30);i++){
+      const nr=x[i].map(normH),found=reqKeys.filter(k=>nr.includes(normH(IMP_REQ[k])));
+      if(!best||found.length>best.score)best={sn,i,x,nr,score:found.length,found};
+    }
+    if(best&&best.score===reqKeys.length)break;
+  }
+  if(!best||best.score<2)throw new ImpErr('Это не похоже на выгрузку «Детализация продаж»',['Не нашёл строку с заголовками колонок. Нужны: '+reqKeys.map(k=>IMP_REQ[k]).join(', ')+'.','Листы в файле: '+wb.SheetNames.join(', ')+'.']);
+  const missing=reqKeys.filter(k=>!best.found.includes(k));
+  if(missing.length)throw new ImpErr('В файле нет нужных колонок',[`На листе «${best.sn}» найдено ${best.score} из ${reqKeys.length} обязательных колонок.`,'Не хватает: '+missing.map(k=>'«'+IMP_REQ[k]+'»').join(', ')+'.','Проверьте, что выгрузка полная и заголовки не переименованы.']);
+  const c={};for(const k in IMP_REQ)c[k]=best.nr.indexOf(normH(IMP_REQ[k]));for(const k in IMP_OPT)c[k]=best.nr.indexOf(normH(IMP_OPT[k]));
+  const warnings=[],rows=[],dates=[];let noDate=0,badNum=0,sampleBad='';
+  for(const r of best.x.slice(best.i+1)){
+    const tn=String(r[c.tn]==null?'':(typeof r[c.tn]==='number'?Math.trunc(r[c.tn]):r[c.tn])).trim();
+    if(!tn)continue;
+    for(const k of ['L','O','P']){const v=r[c[k]];if(v!==''&&v!=null&&typeof v!=='number'&&!isFinite(parseFloat(String(v).replace(/\s/g,'').replace(',','.'))))badNum++}
+    let day=null;
+    if(c.A>=0){day=toDay(r[c.A]);if(!day){noDate++;if(!sampleBad&&r[c.A]!==''&&r[c.A]!=null)sampleBad=String(r[c.A]).slice(0,30)}}
+    rows.push({tn,fio:c.fio>=0?String(r[c.fio]||'').trim():'',D:r[c.D],K:r[c.K],L:toNum(r[c.L]),O:toNum(r[c.O]),P:toNum(r[c.P]),R:r[c.R],V:r[c.V],Q:c.Q>=0?r[c.Q]:''});
+    dates.push(day);
+  }
+  if(!rows.length)throw new ImpErr('В файле нет строк с продажами',[`Заголовки на листе «${best.sn}» найдены, но ни в одной строке не заполнен «ТН сотрудника».`]);
+  let key=null,kept=rows,last=null;
+  if(c.A>=0){
+    const cnt={};let dated=0;dates.forEach(d=>{if(d){const k=d.slice(0,7);cnt[k]=(cnt[k]||0)+1;dated++}});
+    if(!dated)throw new ImpErr('Не удалось распознать даты',[`В колонке «Дата учета» нет понятных дат${sampleBad?' (например: «'+sampleBad+'»)':''}. Ожидаю ДД.ММ.ГГГГ или ГГГГ-ММ-ДД.`]);
+    const keys=Object.keys(cnt).sort();
+    key=keys.reduce((p,k)=>cnt[k]>=cnt[p]?k:p,keys[0]);
+    const other=dated-cnt[key];
+    if(other){
+      if(other/dated>=0.05)throw new ImpErr('В файле данные за несколько месяцев',[...keys.map(k=>`${monthLabel(k)}: ${cnt[k]} ${plural(cnt[k],'строка','строки','строк')}`),'Выгрузите продажи за один месяц и загрузите снова.']);
+      kept=rows.filter((r,i)=>!dates[i]||dates[i].slice(0,7)===key);
+      warnings.push(`Пропущено ${other} ${plural(other,'строка','строки','строк')} за другие месяцы (${keys.filter(k=>k!==key).map(monthLabel).join(', ')}).`);
+    }
+    dates.forEach(d=>{if(d&&d.slice(0,7)===key&&(!last||d>last))last=d});
+    if(noDate)warnings.push(`${noDate} ${plural(noDate,'строка','строки','строк')} без понятной даты учтены без проверки месяца.`);
+  }else warnings.push('Нет колонки «Дата учета»: месяц файла не проверен, «прошло дней» не изменилось. При необходимости поправьте его в разделе «Период».');
+  if(c.Q<0)warnings.push('Нет колонки «Качественная СИМ»: качественные SIM посчитаны как 0.');
+  if(badNum)warnings.push(`В ${badNum} ${plural(badNum,'ячейке','ячейках','ячейках')} колонок «Кол-во», «УП», «Цена до скидок» не числа, они посчитаны как 0.`);
+  const agg=aggregate(kept),groups=buildGroups(kept);
+  if(S.emps.length&&!S.emps.some(e=>agg[e.tn])){
+    const tns=Object.keys(agg);
+    throw new ImpErr('В файле нет ваших сотрудников',['Ни один табельный номер из списка приложения не найден в выгрузке.','В файле ТН: '+tns.slice(0,6).join(', ')+(tns.length>6?' и ещё '+(tns.length-6):'')+'. Проверьте, что это выгрузка вашего офиса.']);
+  }
+  return {name,rows:kept,agg,groups,last,key,warnings};
+}
+function handleParsed(p){
+  const cur=S.asof?S.asof.slice(0,7):null;
+  if(p.key&&cur&&p.key<cur)throw new ImpErr('Файл за более ранний месяц',[`В файле данные за ${monthLabel(p.key)}, а в приложении сейчас ${monthLabel(cur)}.`,`Загрузка отменена, чтобы не затереть текущий месяц. Нужна выгрузка за ${monthLabel(cur)} или новее.`,...((S.history||[]).some(h=>h.k===p.key)?[`Итоги за ${monthLabel(p.key)} уже сохранены во вкладке «История».`]:[])]);
+  if(p.key&&cur&&p.key>cur){
+    PENDING=p;
+    impBox={t:'ask',ask:true,title:'В файле новый месяц: '+monthLabel(p.key),lines:[`В приложении данные за ${monthLabel(cur)}, в файле за ${monthLabel(p.key)}.`,`Закрыть ${monthLabel(cur)}? Его итоги сохранятся во вкладке «История», текущими станут данные из файла.`,'Ручные проценты и отметки «не в смене» сбросятся. Часы сотрудников останутся прежними: проверьте их.',...p.warnings.map(w=>'⚠ '+w)]};
+    render();return;
+  }
+  if(p.last&&S.asof&&p.last<S.asof)p.warnings.unshift(`Данные в файле до ${fmtDay(p.last)}, а в приложении уже до ${fmtDay(S.asof)}: файл старее текущих данных.`);
+  finishImport(p,false);
+}
+function finishImport(p,closePrev){
+  const lines=[];
+  if(closePrev){const k=monthKey();snapMonth(k);S.man={};S.shifts={};lines.push(`Итоги за ${monthLabel(k)} сохранены в «Историю».`)}
+  const agg=p.agg,added=[];
+  for(const e of S.emps){
+    const a=agg[e.tn];e.nodata=!a;
+    e.m=a?a.m.slice():Array(9).fill(0);e.b=a?a.b.slice():Array(7).fill(0);
+    if(a&&e.name.startsWith('—')&&a.name)e.name=a.name;
+  }
+  S.agg=agg; // продажи всех из файла: по ним добавляются новые сотрудники по табельному номеру
+  S.rawG=p.groups;recalcCustom();
+  for(const [tn,a] of Object.entries(agg))if(!S.emps.some(e=>e.tn===tn))added.push((a.name||'ТН')+' '+tn);
+  if(p.last){S.asof=p.last;const [y,mo,d]=p.last.split('-').map(Number);S.passed=d;S.month=new Date(y,mo,0).getDate()}
+  S.importedRows=p.rows.length;
+  PENDING=null;
+  save();
+  if(p.last)lines.unshift(`Данные до ${fmtDay(p.last)} (${monthLabel(p.last.slice(0,7))}), прошло дней: ${S.passed} из ${S.month}.`);
+  if(added.length)lines.push(`Не добавлены (есть в файле): ${added.join(', ')}. Добавьте по табельному номеру ниже.`);
+  p.warnings.forEach(w=>lines.push('⚠ '+w));
+  if(syOn()&&SY.pw)lines.push('Данные уйдут на сервер сами, у сотрудников появится плашка «Данные обновлены».');
+  impBox={t:'ok',title:`Готово: ${p.rows.length} ${plural(p.rows.length,'строка','строки','строк')}, ${Object.keys(agg).length} ${plural(Object.keys(agg).length,'сотрудник','сотрудника','сотрудников')}.`,lines};
+}
+function importFile(file){
+  PENDING=null;impBox={t:'info',title:'Читаю файл…',lines:[]};render();
+  const name=file.name||'файл',ext=(name.split('.').pop()||'').toLowerCase();
+  const fail=(title,lines)=>{impBox={t:'err',title,lines:lines||[]};render()};
+  if(!['xlsx','xls','ods','csv'].includes(ext))return fail('Этот формат не подходит',[`Файл «${name}»${ext&&ext!==name.toLowerCase()?' (.'+ext+')':''}: нужна выгрузка в формате .xlsx, .xls, .ods или .csv.`]);
+  if(!file.size)return fail('Файл пустой',[`«${name}» ничего не содержит. Выгрузите продажи заново и повторите.`]);
+  const fr=new FileReader();
+  fr.onerror=()=>fail('Не удалось прочитать файл',[`Телефон не смог открыть «${name}». Скачайте его заново и выберите ещё раз.`]);
+  fr.onload=()=>{
+    try{handleParsed(parseSales(fr.result,name))}
+    catch(err){
+      if(err instanceof ImpErr)fail(err.title,err.lines);
+      else fail('Не получилось обработать файл',['Подробности: '+(err&&err.message||err),'Текущие данные не изменились.']);
+      return;
+    }
+    render();
+  };
+  fr.readAsArrayBuffer(file);
+}
+const fmtDay=iso=>{const [y,m,d]=iso.split('-').map(Number);return new Date(Date.UTC(y,m-1,d)).toLocaleDateString('ru-RU',{day:'numeric',month:'long',timeZone:'UTC'})};
+function impCard(){
+  const b=impBox;
+  const box=b?`<div class="imp ${b.t}" role="status"><b>${esc(b.title)}</b>${b.lines&&b.lines.length?'<ul>'+b.lines.map(l=>`<li>${esc(l)}</li>`).join('')+'</ul>':''}${b.ask&&PENDING?'<div class="acts"><button class="btn" data-a="impGo">Закрыть месяц и загрузить</button><button class="btn ghost" data-a="impCancel">Отмена</button></div>':''}</div>`
+    :`<div class="muted" id="impMsg" role="status">${S.importedRows?`Последняя загрузка: ${S.importedRows} строк.`:'Пока загружены данные из вашей таблицы на момент выгрузки.'}</div>`;
+  return `<div class="sect">Детализация продаж</div><div class="card"><p class="muted" style="margin:0">Загрузите выгрузку продаж (.xlsx, .ods или .csv) с теми же колонками, что на листе «Детализация продаж». Перед загрузкой приложение проверяет колонки и месяц и объяснит, если что-то не так. Факт по всем показателям пересчитается сам. Файл остаётся на вашем устройстве.</p>
+  <input id="fileIn" type="file" accept=".xlsx,.xls,.ods,.csv" aria-label="Файл детализации" style="font:inherit;max-width:100%">
+  ${box}</div>`;
+}
+// ---------- расчёты ----------
+const nf=(v,d=0)=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:d,minimumFractionDigits:0}).format(v);
+const pc=v=>nf(v*100,1)+' %';
+const totalHours=()=>S.emps.reduce((a,e)=>a+e.hours,0);
+const hasData=e=>!e.name.startsWith('—')&&!e.nodata;
+function planOf(e,kind,i){const o=(kind==='m'?S.officeM:S.officeB)[i];const th=totalHours();return th?Math.round(e.hours/th*o):0}
+function fcOf(f){return S.passed?f/S.passed*S.month:0}
+// % выполнения: если задан вручную, берётся он, иначе факт ÷ план
+// цель прогноза (% плана) по каждому показателю; если не задана, берётся общая
+const tgtOf=(k,i)=>S.targets[k+'.'+i]!=null?S.targets[k+'.'+i]:S.target;
+function frOf(e,kind,i){const m=S.man[e.tn+'.'+kind+'.'+i];if(m!=null)return m/100;const p=planOf(e,kind,i);return p?e[kind][i]/p:0}
+function scope(kind,i){ // returns {plan,fact,fr}
+  if(S.scope==='me'){const e=S.emps.find(x=>x.tn===S.me)||S.emps[0];return {plan:planOf(e,kind,i),fact:e[kind][i],fr:frOf(e,kind,i)}}
+  const o=(kind==='m'?S.officeM:S.officeB)[i],fact=S.emps.reduce((a,e)=>a+e[kind][i],0),m=S.man['office.'+kind+'.'+i];
+  return {plan:o,fact,fr:m!=null?m/100:(o?fact/o:0)}
+}
+function level(r){return r>=1?'good':r>=.5?'warn':'bad'}
+function val(v,u,d){return nf(v,d||(u==='УП'?2:u==='шт.'?1:0))}
+// 10 показателей эффективности: 9 основных + Телефоны
+function effRatios(e){
+  const r=[];
+  for(let i=0;i<9;i++){const p=planOf(e,'m',i);r.push(frOf(e,'m',i)*S.month/(S.passed||1))}
+  r.push(frOf(e,'b',0)*S.month/(S.passed||1));return r;
+}
+const EFF_N=[...MAIN.map(m=>m.n),'Телефоны'];
+function effScore(e){const r=effRatios(e);return r.reduce((a,x)=>a+Math.min(x,S.cap),0)/r.length}
+function verdict(s){return s>=S.t1?['Молодец','good']:s>=S.t2?['Хорошо','good']:s>=S.t3?['Есть куда расти','warn']:['Позор офиса','bad']}
+function ranked(){return S.emps.filter(hasData).map(e=>({e,s:effScore(e)})).sort((a,b)=>b.s-a.s)}
+
+// ---------- вспомогательное ----------
+const ICON={
+ goals:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4M6 5h11l-2 4 2 4H6"/></svg>',
+ det:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h12M8 12h12M8 17h12"/><circle cx="4" cy="7" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="17" r="1"/></svg>',
+ brand:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
+ day:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M8 15l2.5 2.5L16 13"/></svg>',
+hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 8v4l3 2"/></svg>',
+ set:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>'};
+const TABS=[['goals','Цели'],['det','Команда'],['brand','Бренды'],['day','На день'],['hist','История'],['set','Ввод']];
+function scopeSeg(){
+  const opts=S.emps.filter(hasData).map(e=>`<option value="${e.tn}" ${e.tn===S.me?'selected':''}>${e.name}</option>`).join('');
+  return `<div class="seg" role="group" aria-label="Показывать"><button data-a="scope" data-v="me" aria-pressed="${S.scope==='me'}">Я</button><button data-a="scope" data-v="office" aria-pressed="${S.scope==='office'}">Офис</button></div>`+
+   (S.scope==='me'&&!lockTn()?`<select id="meSel" aria-label="Сотрудник" style="margin-top:8px;width:100%">${opts}</select>`:'');
+}
+function dots(r,lv){const n=88,on=Math.min(n,Math.round(Math.min(r,1)*n));return `<div class="dots ${lv}" aria-hidden="true">`+Array.from({length:n},(_,i)=>`<i class="${i<on?'on':''}"></i>`).join('')+'</div>'}
+
+// ---------- экраны ----------
+const GRIP='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>';
+function customBlock(){
+  const C=S.custom||[];if(!C.length)return '';
+  const LK=lockTn(),me=S.emps.find(x=>x.tn===S.me)||S.emps[0],emps=S.emps.filter(hasData),showMe=S.scope==='me'&&me;
+  const cards=C.map(c=>{
+    const u=c.by==='sum'?'руб.':'шт.',d=u==='шт.'?1:0,vals=c.vals||{},office=emps.reduce((a,e)=>a+(vals[e.tn]||0),0),big=showMe?(vals[me.tn]||0):office;
+    const list=!LK?emps.map(e=>({e,v:vals[e.tn]||0})).sort((a,b)=>b.v-a.v).map(x=>`<div class="drow"><span class="nm">${esc(x.e.name)}</span><b>${nf(x.v,d)} ${u}</b></div>`).join(''):'';
+    return `<div class="card" style="gap:8px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h3>${esc(c.n||c.q)}</h3><span class="muted">${showMe?(LK?'вы':esc(me.name)):'весь офис'}</span></div>
+     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:26px;font-weight:700">${nf(big,d)} ${u}</span><span class="muted">факт</span></div>
+     <div class="muted">прогноз на месяц: ${nf(fcOf(big),d)} ${u}${LK&&showMe?' · весь офис: '+nf(office,d)+' '+u:''}</div>
+     ${list?`<div class="sect" style="padding:6px 0 0">Кто сколько</div>${list}`:''}</div>`}).join('');
+  return `<div class="sect">Свои показатели</div>${cards}`;
+}
+function vGoals(){
+  const t=goalOrder().map(i=>{const m=MAIN[i];
+    const {plan,fact,fr}=scope('m',i),r=fr*S.month/(S.passed||1),fc=plan*r,lv=level(r);
+    return `<div class="tile ${lv}" data-i="${i}"><span class="grip" data-grip="${i}" aria-label="Перетащить блок «${m.n}»" role="button">${GRIP}</span><h3 style="color:var(--ink)">${m.n}</h3>
+     <div class="pair big" style="margin-top:12px"><span>${pc(r)}</span><span class="lbl">прогноз</span></div>
+     <div class="sub">${val(fc,m.u,m.d)} ${m.u}</div>
+     <div class="ln"><b>${pc(fr)}<br><span>${val(fact,m.u,m.d)} ${m.u}</span></b><span>факт</span></div>
+     <div class="ln"><b>${val(plan,m.u,m.d)} ${m.u}</b><span>план</span></div>${dots(fr,lv)}</div>`}).join('');
+  const bar=editOrder?`<div class="ordbar"><span class="muted">Тяните блок за значок ⋮⋮ в любое место</span><span style="display:flex;gap:8px"><button class="btn ghost" data-a="goalReset">Сбросить</button><button class="btn" data-a="goalEdit">Готово</button></span></div>`
+    :`<div class="ordbar"><span></span><button class="btn ghost" data-a="goalEdit">Изменить порядок</button></div>`;
+  return bar+`<div class="grid ${editOrder?'editing':''}" id="goalGrid">${t}</div>${customBlock()}<p class="hint">Прогноз = факт ÷ прошедшие дни × дни в месяце. Цвет: зелёный от 100 %, жёлтый 50–99 %, красный ниже 50 %.</p>`;
+}
+// перетаскивание: pointer-события работают и пальцем, и мышью
+function initDrag(){
+  document.addEventListener('pointerdown',ev=>{
+    const gr=ev.target.closest&&ev.target.closest('.grip');
+    if(!gr||!editOrder)return;
+    const tile=gr.closest('.tile'),grid=tile.parentElement;
+    ev.preventDefault();
+    const rect=tile.getBoundingClientRect(),dx=ev.clientX-rect.left,dy=ev.clientY-rect.top;
+    const ph=document.createElement('div');ph.className='tile-ph';ph.style.height=rect.height+'px';
+    grid.insertBefore(ph,tile);
+    tile.classList.add('drag');
+    Object.assign(tile.style,{width:rect.width+'px',height:rect.height+'px',left:rect.left+'px',top:rect.top+'px'});
+    document.body.classList.add('dragging');
+    let x=ev.clientX,y=ev.clientY,raf=0,done=false;
+    const place=()=>{
+      tile.style.left=(x-dx)+'px';tile.style.top=(y-dy)+'px';
+      // под пальцем: ищем другой блок и ставим на его место заглушку
+      const els=document.elementsFromPoint(x,y);
+      const over=els.find(e=>e!==tile&&e!==ph&&e.classList&&e.classList.contains('tile')&&e.parentElement===grid);
+      if(over){
+        const after=ph.compareDocumentPosition(over)&Node.DOCUMENT_POSITION_FOLLOWING;
+        grid.insertBefore(ph,after?over.nextSibling:over);
+      }
+    };
+    const loop=()=>{ // автопрокрутка у краёв экрана
+      if(done)return;
+      const h=window.innerHeight,edge=90;
+      let sp=0;if(y<edge+70)sp=-Math.ceil((edge+70-y)/6);else if(y>h-edge-60)sp=Math.ceil((y-(h-edge-60))/6);
+      if(sp){window.scrollBy(0,Math.max(-22,Math.min(22,sp)));place()}
+      raf=requestAnimationFrame(loop);
+    };
+    const move=e=>{if(e.pointerId!==ev.pointerId)return;e.preventDefault();x=e.clientX;y=e.clientY;place()};
+    const end=e=>{
+      if(e&&e.pointerId!==ev.pointerId)return;
+      done=true;cancelAnimationFrame(raf);
+      document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',end);document.removeEventListener('pointercancel',end);
+      grid.insertBefore(tile,ph);ph.remove();
+      tile.classList.remove('drag');tile.removeAttribute('style');
+      document.body.classList.remove('dragging');
+      S.goalOrder=[...grid.querySelectorAll('.tile')].map(t=>Number(t.dataset.i));
+      save();render();
+    };
+    document.addEventListener('pointermove',move,{passive:false});
+    document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
+    raf=requestAnimationFrame(loop);place();
+  });
+}
+function vBrand(){
+  return DATA.brand.names.map((n,i)=>{
+    const {plan,fact,fr}=scope('b',i),u=BR[i].u,r=fr*S.month/(S.passed||1),lv=level(r);
+    return `<div class="card"><h3>${n}</h3>
+     <div class="cols"><div><div class="f">План</div><div class="v">${val(plan,u)}<small>${u}</small></div></div><div></div>
+     <div><div class="f">Факт</div><div class="v">${val(fact,u)}<small>${u}</small></div></div>
+     <div style="align-self:end"><div class="f">Прогноз</div><div class="v ${lv}">${pc(r)}</div></div></div>
+     <div><div class="muted">Фактическое выполнение</div><b>${pc(fr)}</b></div><div class="bar ${lv}"><i style="width:${Math.min(100,fr*100)}%"></i></div></div>`}).join('');
+}
+function vDet(){
+  const rk=ranked(), avg=rk.length?rk.reduce((a,x)=>a+x.s,0)/rk.length:0;
+  const rows=rk.map((x,k)=>{
+    const e=x.e,[vt,lv]=verdict(x.s),rat=effRatios(e),isMe=e.tn===S.me,open=openEmp===e.tn;
+    const ds=EFF_N.map((nm,i)=>{const r=rat[i],l=level(r);return `<div class="drow"><span class="nm">${nm}</span><b class="${l}">${pc(r)}</b><div class="bar ${l}" style="grid-column:1/-1"><i style="width:${Math.min(100,r*100)}%"></i></div></div>`}).join('');
+    const best=EFF_N[rat.indexOf(Math.max(...rat))],worst=EFF_N[rat.indexOf(Math.min(...rat))];
+    return `<button class="row ${isMe?'me':''} ${open?'open':''}" data-a="emp" data-v="${e.tn}" aria-expanded="${open}">
+      <div><div class="n">${k+1}. ${e.name}</div><span class="chip ${lv}">${vt}</span></div>
+      <div class="r"><span class="badge">${nf(x.s*100,0)} %</span></div>
+      <div class="muted">СУП: факт ${val(e.m[0],'УП',1)} · прогноз ${val(fcOf(e.m[0]),'УП',1)} УП</div><div></div>
+      <div class="detail"><div class="muted">Сильная сторона: <b>${best}</b> · слабая: <b>${worst}</b></div>${ds}</div></button>`}).join('');
+  const nodata=S.emps.filter(e=>!hasData(e)).map(e=>`<div class="row" style="cursor:default"><div class="n">${e.name}</div><span class="chip">нет данных</span><div class="muted">Проверьте смену: отпуск, больничный или поздний выход.</div></div>`).join('');
+  return `<div class="stats"><div class="stat"><b>${nf(avg*100,0)} %</b><span>средний балл офиса</span></div><div class="stat"><b>${rk.length}</b><span>сотрудников с данными</span></div></div>
+   <div class="sect">Рейтинг по темпу месяца</div><div class="list">${rows}${nodata}</div>
+   <p class="hint">Балл = средний % плана по 10 показателям (потолок ${nf(S.cap*100,0)} % на показатель). План офиса делится по часам. Решение о замене остаётся за руководителем: рейтинг не учитывает стаж, обучение и причины низких продаж. ШПД, Апельсин: малый план, одна продажа сильно двигает %.</p>`;
+}
+function nextMonday(){const d=new Date();const add=(8-d.getDay())%7||7;return add}
+// «Что продать»: сколько не хватает до темпа, который выводит показатель на цель, и сколько баллов рейтинга это даст
+function whatToSell(e){
+  const k=S.month/(S.passed||1),out=[];
+  for(let j=0;j<10;j++){
+    const kind=j<9?'m':'b',i=j<9?j:0,p=planOf(e,kind,i);
+    if(!p||S.man[e.tn+'.'+kind+'.'+i]!=null)continue; // ручной % не зависит от продаж
+    const f=e[kind][i],r=f/p*k,t=tgtOf(kind,i),gain=(Math.min(t,S.cap)-Math.min(r,S.cap))/10;
+    if(r>=t||gain<=0)continue;
+    out.push({name:j<9?MAIN[i].n:'Телефоны',u:j<9?MAIN[i].u:BR[0].u,p,f,t,gap:Math.max(0,t*p/k-f),gain});
+  }
+  return out.sort((a,b)=>b.gain-a.gain);
+}
+function sellHint(e){
+  if(!e||!hasData(e))return '';
+  const head='<div class="sect">Что продать, чтобы выйти на цель</div>',L=whatToSell(e),rem=Math.max(1,S.month-S.passed);
+  if(!L.length)return head+'<div class="card"><div><b class="good">По темпу всё в порядке.</b> Каждый показатель идёт к своей цели.</div><p class="muted" style="margin:0">Сколько продавать каждый день, видно ниже в плане на день.</p></div>';
+  const up=x=>x.u==='УП'?Math.ceil(x.gap*10)/10:x.name==='ШПД'?Math.ceil(x.gap*2)/2:Math.ceil(x.gap);
+  const rows=L.slice(0,3).map((x,n)=>{const left=Math.max(0,x.t*x.p-x.f);
+    return `<div class="drow"><span class="nm">${n===0?'Начните с: ':''}${x.name}</span><b>не хватает ${nf(up(x),1)} ${x.u}</b><span class="muted">до цели месяца ещё ${nf(left,x.u==='УП'?1:0)} ${x.u}, это ≈ ${nf(Math.ceil(left/rem*(x.u==='УП'?10:1))/(x.u==='УП'?10:1),x.u==='УП'?1:0)} в день</span><span class="good">+${nf(x.gain*100,1)} % к баллу</span></div>`}).join('');
+  const base=effScore(e)*100,tot=L.reduce((a,x)=>a+x.gain,0)*100;
+  return head+`<div class="card" style="gap:12px">${rows}<p class="muted" style="margin:0">Это отставание от темпа на сегодня: продайте столько, и показатель выходит на цель по темпу. Если закрыть все отставания, балл вырастет с ${nf(base,0)} % до ${nf(base+tot,0)} %.${L.length>3?' Показаны 3 самых выгодных из '+L.length+'.':''}</p></div>`;
+}
+function vDay(){
+  const rem=Math.max(1,S.month-S.passed), shift=S.emps.filter(e=>hasData(e)&&S.shifts[e.tn]!==false);
+  const nS=Math.max(1,shift.length), toMon=Math.min(nextMonday(),rem), tgt=S.target;
+  const me=S.emps.find(e=>e.tn===S.me)||S.emps[0];
+  const shiftRows=S.emps.filter(hasData).map(e=>`<div class="switch"><span>${e.name}</span><button class="tog" data-a="shift" data-v="${e.tn}" aria-pressed="${S.shifts[e.tn]!==false}" aria-label="В смене: ${e.name}"></button></div>`).join('');
+  const all=[...MAIN.map((m,i)=>({n:m.n,u:m.u,k:'m',i,d:m.d})),...DATA.brand.names.map((n,i)=>({n,u:BR[i].u,k:'b',i}))];
+  const off=all.map(x=>{
+    const o=(x.k==='m'?S.officeM:S.officeB)[x.i];if(!o)return '';
+    const fact=S.emps.reduce((a,e)=>a+e[x.k][x.i],0),t=tgtOf(x.k,x.i),left=Math.max(0,t*o-fact),day=Math.ceil(left/rem),per=Math.ceil(day/nS),
+      need=Math.ceil(left/rem*toMon),needP=Math.ceil(need/nS);
+    return `<tr class="nm"><td colspan="5">${x.n}<span class="muted">цель ${nf(t*100,0)} %</span></td></tr><tr><td>${val(left,x.u,x.d)}</td><td>${val(day,x.u)}</td><td>${val(per,x.u)}</td><td>${val(need,x.u)}</td><td>${val(needP,x.u)}</td></tr>`}).join('');
+  const mine=S.shifts[me.tn]===false?'<p class="muted">Вы отмечены «не в смене», план на день не считается.</p>':
+   all.map(x=>{const p=planOf(me,x.k,x.i);if(!p)return '';const t=tgtOf(x.k,x.i),fact=me[x.k][x.i],left=Math.max(0,t*p-fact);
+     return `<div class="drow"><span class="nm">${x.n}</span><b>${val(Math.ceil(left/rem),x.u)} ${x.u}</b><span class="muted">цель ${nf(t*100,0)} %: осталось ${val(left,x.u,x.d)} из ${val(t*p,x.u,x.d)}</span><span></span></div>`}).join('');
+  return `<div class="stats"><div class="stat"><b>${rem}</b><span>дней осталось</span></div><div class="stat"><b>${shift.length}</b><span>в смене</span></div>
+   <div class="stat"><b>${toMon}</b><span>дней продаж до понедельника</span></div><div class="stat"><b>${nf(tgt*100,0)} %</b><span>цель по умолчанию</span></div></div>
+   ${sellHint(me)}
+   ${lockTn()?'':`<div class="sect">Кто в смене</div><div class="list">${shiftRows}</div>`}
+   <div class="sect">Мой план на день</div><div class="card" style="gap:12px">${mine}</div>
+   ${`<div class="sect">По офису</div><div class="card fitc"><div class="scroll"><table class="tbl fit"><thead><tr><th>До цели</th><th>В день</th><th>На чел.</th><th>До пн</th><th>До пн на чел.</th></tr></thead><tbody>${off}</tbody></table></div></div>`}
+   <p class="hint">План на день = остаток ÷ оставшиеся дни. «До пн» = сколько продать до понедельника, чтобы по темпу выйти на цель по этому показателю (цели задаются во вкладке «Ввод»). План на день считается до цели, а не до 100 %.</p>`;
+}
+
+// ---------- история месяцев ----------
+function snapVals(h,who){ // факт и план по 16 показателям (9 основных + 7 брендов)
+  const th=h.th||h.emps.reduce((a,e)=>a+e.hours,0)||1,plan=(e,o)=>Math.round(e.hours/th*o);
+  const off=[...h.officeM,...h.officeB];
+  if(who==='office'){const f=Array(16).fill(0);for(const e of h.emps){[...e.m,...e.b].forEach((v,i)=>f[i]+=v)}return {f,p:off}}
+  const e=h.emps.find(x=>x.tn===who);if(!e)return null;
+  return {f:[...e.m,...e.b],p:off.map(o=>plan(e,o))};
+}
+function nowVals(who){
+  if(who==='office'){const f=Array(16).fill(0);for(const e of S.emps){[...e.m,...e.b].forEach((v,i)=>f[i]+=v)}return {f,p:[...S.officeM,...S.officeB]}}
+  const e=S.emps.find(x=>x.tn===who);if(!e||!hasData(e))return null;
+  return {f:[...e.m,...e.b],p:[...MAIN.map((m,i)=>planOf(e,'m',i)),...BR.map((x,i)=>planOf(e,'b',i))]};
+}
+function snapScore(h,who){ // тот же балл, что в рейтинге: средний % плана по 10 показателям с потолком
+  const th=h.th||h.emps.reduce((a,e)=>a+e.hours,0)||1,list=who==='office'?h.emps:h.emps.filter(e=>e.tn===who);
+  if(!list.length)return null;
+  const sc=e=>{let t=0;for(let j=0;j<10;j++){const k=j<9?'m':'b',i=j<9?j:0,o=(k==='m'?h.officeM:h.officeB)[i],p=Math.round(e.hours/th*o),mv=h.man&&h.man[e.tn+'.'+k+'.'+i],
+    fr=mv!=null?mv/100:(p?e[k][i]/p:0);t+=Math.min(fr*h.month/(h.passed||1),S.cap)}return t/10};
+  return list.reduce((a,e)=>a+sc(e),0)/list.length;
+}
+function nowScore(who){
+  if(who==='office'){const rk=ranked();return rk.length?rk.reduce((a,x)=>a+x.s,0)/rk.length:null}
+  const e=S.emps.find(x=>x.tn===who);return e&&hasData(e)?effScore(e):null;
+}
+function vHist(){
+  const H=S.history||[];
+  if(!H.length)return `<div class="card"><h3>Пока нет сохранённых месяцев</h3><p class="muted" style="margin:0">Когда администратор закроет месяц, его итоги появятся здесь, и их можно будет сравнить с текущим.</p></div>`+(canEdit()?`<p class="hint">Администратору: «Ввод» → «История месяцев» → «Закрыть месяц». Также приложение само предложит закрыть месяц, когда вы загрузите выгрузку за следующий.</p>`:'');
+  const cur=monthKey(),LK=lockTn();
+  if(!HIST.k||!H.some(h=>h.k===HIST.k)){const prev=H.filter(h=>h.k<cur);HIST.k=(prev.length?prev[prev.length-1]:H[H.length-1]).k}
+  const h=H.find(x=>x.k===HIST.k);
+  const whoOpts=LK?[['office','Весь офис'],...(h.emps.some(e=>e.tn===LK)?[[LK,'Я']]:[])]:[['office','Весь офис'],...h.emps.map(e=>[e.tn,e.name])];
+  if(!whoOpts.some(o=>o[0]===HIST.who))HIST.who='office';
+  const who=HIST.who,A=snapVals(h,who),B=nowVals(who);
+  const names=[...MAIN.map(m=>m.n),...DATA.brand.names],units=[...MAIN.map(m=>({u:m.u,d:m.d})),...BR.map(b=>({u:b.u}))];
+  const rows=names.map((n,i)=>{
+    const f=A?A.f[i]:0,p=A?A.p[i]:0,now=B?B.f[i]:null;
+    if(!f&&!p&&!now)return '';
+    const u=units[i].u,d=units[i].d,fc=now==null?null:fcOf(now),dl=(f>0&&fc!=null)?fc/f-1:null;
+    return `<tr class="nm"><td colspan="4">${n}<span class="muted">${p?'итог '+nf(f/p*100,0)+' % плана':'плана не было'}</span></td></tr><tr><td>${val(f,u,d)}</td><td>${now==null?'—':val(now,u,d)}</td><td>${fc==null?'—':val(fc,u,d)}</td><td class="${dl==null?'':dl>=0?'good':'bad'}">${dl==null?'—':(dl>0?'+':'')+nf(dl*100,0)+' %'}</td></tr>`}).join('');
+  const sA=snapScore(h,who),sB=nowScore(who);
+  return `<div class="hsel"><select id="histSel" aria-label="Сохранённый месяц">${H.slice().reverse().map(x=>`<option value="${x.k}" ${x.k===h.k?'selected':''}>${monthLabel(x.k)}${x.k===cur?' (текущий)':''}</option>`).join('')}</select>
+  <select id="histWho" aria-label="Кого сравнивать">${whoOpts.map(o=>`<option value="${esc(o[0])}" ${o[0]===who?'selected':''}>${esc(o[1])}</option>`).join('')}</select></div>
+  <div class="stats"><div class="stat"><b>${sA==null?'—':nf(sA*100,0)+' %'}</b><span>балл за ${monthLabel(h.k)}</span></div><div class="stat"><b>${sB==null?'—':nf(sB*100,0)+' %'}</b><span>балл сейчас (по прогнозу)</span></div></div>
+  <div class="sect">${monthLabel(h.k)} и сейчас</div><div class="card fitc"><div class="scroll"><table class="tbl fit"><thead><tr><th>Итог месяца</th><th>Сейчас</th><th>Прогноз</th><th>Прогноз к итогу</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="muted">Нет данных для сравнения</td></tr>'}</tbody></table></div></div>
+  <p class="hint">Итог месяца: что было сохранено при закрытии (данные до ${h.asof?fmtDay(h.asof):'—'}, дней ${h.passed} из ${h.month}). Прогноз = факт сейчас ÷ прошло дней × дней в месяце. Балл считается как в рейтинге: средний % плана по 10 показателям. Если сотрудника сейчас нет в списке, у него стоит прочерк.</p>`;
+}
+let cuMsg='',cuArm=null;
+function customCard(){
+  const C=S.custom||[];
+  const rows=C.map((c,i)=>`<div class="card" style="gap:8px;padding:12px">
+    <input type="text" data-path="cu.${i}.n" value="${esc(c.n||'')}" placeholder="Название на экране" aria-label="Название показателя">
+    <input type="text" data-path="cu.${i}.q" value="${esc(c.q||'')}" placeholder="Что искать в названии товара" aria-label="Что искать">
+    <select data-path="cu.${i}.by" aria-label="Что считать"><option value="qty" ${c.by!=='sum'?'selected':''}>Считать штуки</option><option value="sum" ${c.by==='sum'?'selected':''}>Считать рубли</option></select>
+    <div class="muted">${c.found?`Нашёл позиций: ${c.found}. Например: ${(c.names||[]).map(esc).join('; ')}.`:(S.rawG?'Ничего не нашёл: проверьте написание.':'Загрузите выгрузку: без неё искать негде.')}</div>
+    <button class="btn ghost" data-a="cuDel" data-v="${i}">${cuArm===String(i)?'Точно удалить?':'Удалить показатель'}</button></div>`).join('');
+  const add=C.length<3?`<div class="card"><input id="cuQ" type="text" placeholder="Название, например: чехол" aria-label="Название показателя"><select id="cuM" aria-label="Что считать"><option value="qty">Считать штуки</option><option value="sum">Считать рубли</option></select><button class="btn" data-a="cuAdd">Найти и добавить</button></div>`:'<p class="hint">Уже 3 показателя. Чтобы добавить новый, удалите один из текущих.</p>';
+  return `<div class="sect">Свои показатели (до 3)</div><p class="hint">Впишите название, например «чехол»: приложение найдёт в загруженной выгрузке все позиции с этим словом (в категории или названии товара) и покажет на вкладке «Цели», кто сколько продал. Несколько слов ищутся вместе: «чехол samsung».</p>${rows}${add}${cuMsg?`<div class="muted" role="status">${esc(cuMsg)}</div>`:''}`;
+}
+function histCard(){
+  if(!canEdit())return '';
+  const H=S.history||[],k=monthKey(),has=H.some(h=>h.k===k);
+  const list=H.slice().reverse().map(h=>`<div class="switch"><span>${monthLabel(h.k)}<br><span class="muted">данные до ${h.asof?fmtDay(h.asof):'—'}</span></span><button class="btn ghost" data-a="histDel" data-v="${h.k}" style="padding:6px 10px">${histArm===h.k?'Точно удалить?':'Удалить'}</button></div>`).join('');
+  return `<div class="sect">История месяцев</div><div class="card"><p class="muted" style="margin:0">Когда месяц закончился, закройте его: итоги сохранятся, и их можно сравнивать с текущим во вкладке «История». При загрузке выгрузки за новый месяц приложение само предложит закрыть старый.</p>
+  <button class="btn" data-a="histClose">${has?'Обновить итоги':'Закрыть месяц и сохранить итоги'}: ${monthLabel(k)}</button>
+  ${histMsg?`<div class="muted" role="status">${esc(histMsg)}</div>`:''}${H.length?`<div class="list">${list}</div>`:''}</div>`;
+}
+// ручной % выполнения по каждому показателю: пусто = считать автоматически
+function manSec(){
+  const inp=(key,ph)=>`<input type="number" inputmode="decimal" step="any" data-path="man.${key}" value="${S.man[key]==null?'':S.man[key]}" placeholder="${ph}" aria-label="% выполнения ${key}">`;
+  const names=[...MAIN.map(m=>m.n),...DATA.brand.names];
+  const block=(title,pref,planFn)=>`<div class="sect">${title}</div><div class="list">`+
+    names.map((n,j)=>{const k=j<9?'m':'b',i=j<9?j:j-9;return `<div class="field"><span>${n}</span>${inp(pref+'.'+k+'.'+i,planFn(k,i))}</div>`}).join('')+'</div>';
+  const auto=(e)=>(k,i)=>{const p=planOf(e,k,i);return 'авто '+nf(p?e[k][i]/p*100:0,1)};
+  const office=(k,i)=>{const o=(k==='m'?S.officeM:S.officeB)[i];return 'авто '+nf(o?S.emps.reduce((a,e)=>a+e[k][i],0)/o*100:0,1)};
+  return `<div class="sect">% выполнения вручную</div><p class="hint">Впишите % по показателю, и приложение возьмёт его вместо расчёта. Прогноз и рейтинг пересчитаются от него. Пустое поле = авто.</p>`+
+    block('% выполнения: офис','office',office)+S.emps.filter(hasData).map(e=>block('% выполнения: '+e.name,e.tn,auto(e))).join('');
+}
+function vSet(){
+  const num=(path,v,step)=>`<input type="number" inputmode="decimal" step="${step||'any'}" data-path="${path}" value="${v}" aria-label="${path}">`;
+  const ef=S.emps.map((e,ei)=>`<div class="sect" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${e.name}</span><button class="btn ghost" data-a="delEmp" data-v="${e.tn}" style="padding:6px 10px;text-transform:none;letter-spacing:0">${delArm===e.tn?'Точно удалить?':'Удалить'}</button></div><div class="list"><div class="field"><span>Часы за месяц</span>${num(`emps.${ei}.hours`,e.hours)}</div>`+
+    MAIN.map((m,i)=>`<div class="field"><span>${m.n}, факт</span>${num(`emps.${ei}.m.${i}`,e.m[i])}</div>`).join('')+
+    DATA.brand.names.map((n,i)=>`<div class="field"><span>${n}, факт</span>${num(`emps.${ei}.b.${i}`,e.b[i])}</div>`).join('')+'</div>').join('');
+  if(!canEdit())return themeCard()+(lockTn()?logoutCard():syCard())+`<p class="hint">Режим просмотра: планы и данные задаёт администратор, они подтягиваются сами.</p>`;
+  return themeCard()+impCard()+histCard()+staleCard()+customCard()+addCard()+pinCard()+syCard()+updCard()+`<div class="sect">Период</div><div class="list"><div class="switch"><span>Прошло дней<br><span class="muted">обновляйте после закрытия дня</span></span><div class="stepper"><button data-a="days" data-v="-1" aria-label="Меньше">−</button><b>${S.passed}</b><button data-a="days" data-v="1" aria-label="Больше">+</button></div></div>
+   <div class="field"><span>Дней в месяце</span>${num('month',S.month,1)}</div><div class="field"><span>Цель по умолчанию, % плана</span>${num('targetPct',Math.round(S.target*100),1)}</div></div>
+   <div class="sect">Цель по каждому показателю, % плана</div><p class="hint">Например СУП 100, ФВ 110, Huawei 150. Пустое поле = цель по умолчанию (${nf(S.target*100,0)} %).</p>
+   <div class="list">${[...MAIN.map(m=>m.n),...DATA.brand.names].map((n,j)=>{const k=j<9?'m':'b',i=j<9?j:j-9,key=k+'.'+i;return `<div class="field"><span>${n}</span><input type="number" inputmode="decimal" step="any" data-path="tg.${key}" value="${S.targets[key]==null?'':Math.round(S.targets[key]*100)}" placeholder="${nf(S.target*100,0)}" aria-label="Цель ${n}"></div>`}).join('')}</div>
+   <div class="sect">План офиса</div><div class="list">${MAIN.map((m,i)=>`<div class="field"><span>${m.n}</span>${num('officeM.'+i,S.officeM[i])}</div>`).join('')}${DATA.brand.names.map((n,i)=>`<div class="field"><span>${n}</span>${num('officeB.'+i,S.officeB[i])}</div>`).join('')}</div>
+   <div class="sect">Рейтинг</div><div class="list"><div class="field"><span>Потолок % на показатель</span>${num('capPct',Math.round(S.cap*100),1)}</div>
+   <div class="field"><span>«Молодец» от, %</span>${num('t1p',Math.round(S.t1*100),1)}</div><div class="field"><span>«Хорошо» от, %</span>${num('t2p',Math.round(S.t2*100),1)}</div><div class="field"><span>«Есть куда расти» от, % (ниже: «Позор офиса»)</span>${num('t3p',Math.round(S.t3*100),1)}</div></div>
+   ${manSec()}
+   <div class="sect">Факт по сотрудникам</div><p class="hint">Данные из вашей таблицы на момент выгрузки. Исправьте цифры вручную. Изменения сохраняются на этом устройстве.</p>${ef}
+   <button class="btn ghost" data-a="reset">Вернуть данные из таблицы</button>`;
+}
+
+const TITLES={goals:'Цели',det:'Команда',brand:'Бренды',day:'На день',hist:'История',set:'Ввод данных'};
+function gateView(){
+  document.body.classList.add('viewer');
+  document.getElementById('title').textContent='Аегис';
+  ['dayinfo','updbar','ctrl','tabs'].forEach(i=>document.getElementById(i).innerHTML='');document.getElementById('dayinfo').hidden=true;
+  document.getElementById('view').innerHTML=`<div class="sect">Подключение к данным</div><div class="card"><p class="muted" style="margin:0">На этом устройстве пока нет данных: сотрудники, планы и продажи приходят только с сервера. Впишите ссылку и ключ, которые выдал администратор, и нажмите «Забрать данные».</p></div>`+syCard();
+}
+function render(){
+  if(!S.emps.length){gateView();return}
+  if(needLogin()){
+    document.body.classList.add('viewer');
+    document.getElementById('title').textContent='Вход';
+    ['dayinfo','updbar','ctrl','tabs'].forEach(i=>document.getElementById(i).innerHTML='');document.getElementById('dayinfo').hidden=true;
+    document.getElementById('view').innerHTML=loginView();return;
+  }
+  const LK=lockTn();if(LK){if(S.scope!=='office')S.scope='me';S.me=LK;if(tab==='det')tab='goals'}
+  document.getElementById('title').textContent=TITLES[tab];
+  document.body.classList.toggle('viewer',!canEdit());
+  const di=document.getElementById('dayinfo');di.hidden=false;di.dataset.f='1';
+  di.innerHTML=(S.asof?`Данные актуальны на <b>${fmtDay(S.asof)}</b> · `:'')+`прошло дней <b>${S.passed} из ${S.month}</b>`+(syOn()&&!SY.pw?`<br><span class="muted">${syFail?'нет связи с сервером, показаны последние данные':(syTs?'обновлено с сервера в '+new Date(syTs).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'ждём данные с сервера')}</span>`:'');
+  document.getElementById('updbar').innerHTML=noteBar()+staleBar()+updBanner();
+  document.getElementById('ctrl').innerHTML=(tab==='goals'||tab==='brand')?scopeSeg():'';
+  document.getElementById('view').innerHTML={goals:vGoals,brand:vBrand,det:vDet,day:vDay,hist:vHist,set:vSet}[tab]();
+  document.getElementById('tabs').innerHTML=TABS.filter(t=>!(LK&&t[0]==='det')).map(([k,n])=>`<button data-a="tab" data-v="${k}" ${k===tab?'aria-current="page"':''}>${ICON[k]}<span>${n}</span></button>`).join('');
+}
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v;
+  if(a==='login'){
+    const tn=(document.getElementById('lgTn').value||'').trim(),pin=(document.getElementById('lgPin').value||'').trim();
+    if(S.pins&&String(S.pins[tn]||'')!==''&&String(S.pins[tn])===pin&&S.emps.some(e=>e.tn===tn)){LOGIN={tn,pin};try{localStorage.setItem('cpu2-login',JSON.stringify(LOGIN))}catch(e){}loginMsg='';tab='goals'}
+    else loginMsg='Неверный табельный номер или ПИН.';
+    render();return}
+  if(a==='logout'){LOGIN=null;try{localStorage.removeItem('cpu2-login')}catch(e){}render();return}
+  if(!canEdit()&&a==='cuAdd'){cuMsg='Добавлять показатели может только администратор: введите пароль администратора в разделе синхронизации.';render();return}
+  if(!canEdit()&&['shift','delEmp','addEmp','reset','days','updClear','pinGen','pinClear','histClose','histDel','impGo','impCancel','staleAll','cuAdd','cuDel'].includes(a))return;
+  if(a==='tab'){tab=v;editOrder=false;window.scrollTo(0,0)}
+  else if(a==='scope'){S.scope=v}
+  else if(a==='emp'){openEmp=openEmp===v?null:v}
+  else if(a==='impGo'){if(PENDING)finishImport(PENDING,true)}
+  else if(a==='impCancel'){PENDING=null;impBox={t:'err',title:'Загрузка отменена',lines:['Текущие данные не изменились.']}}
+  else if(a==='histClose'){const k=monthKey(),had=(S.history||[]).some(h=>h.k===k);snapMonth(k);histMsg=(had?'Итоги обновлены: ':'Месяц закрыт, итоги сохранены: ')+monthLabel(k)+'.'}
+  else if(a==='histDel'){if(histArm!==v){histArm=v;render();return}histArm=null;S.history=(S.history||[]).filter(h=>h.k!==v);histMsg=''}
+  else if(a==='cuAdd'){
+    const q=(document.getElementById('cuQ').value||'').trim(),by=document.getElementById('cuM').value==='sum'?'sum':'qty';S.custom=S.custom||[];
+    if(!q)cuMsg='Впишите, что искать, например «чехол».';
+    else if(S.custom.length>=3)cuMsg='Уже 3 показателя: удалите один.';
+    else if(!S.rawG)cuMsg='Нет данных для поиска: загрузите выгрузку продаж (после обновления приложения её нужно загрузить заново один раз).';
+    else if(!matchGroups({q}).length)cuMsg=`По «${q}» ничего не нашёл. Я ищу по категории и названию товара в загруженной выгрузке. Проверьте написание.${(()=>{const l=similarGroups(q);return l.length?' Похожие позиции в выгрузке: '+l.join('; ')+'.':' Похожих позиций в выгрузке нет: возможно, этот товар продаётся с номером заказа не вида 12345-… (такие заказы не учитываются) или называется иначе.'})()}`;
+    else{const c={id:Date.now(),n:q.charAt(0).toUpperCase()+q.slice(1),q,by};S.custom.push(c);recalcCustom();cuMsg=`Добавлено: «${c.n}», найдено позиций: ${c.found}. Результат на вкладке «Цели».`}
+  }
+  else if(a==='cuDel'){if(cuArm!==v){cuArm=v;render();return}cuArm=null;S.custom.splice(Number(v),1);cuMsg=''}
+  else if(a==='staleAll'){S.staleAll=!S.staleAll}
+  else if(a==='noteOk'){if(NOTE)setSeen(NOTE);NOTE=0}
+  else if(a==='updSkip'){S.updSkip=Number(S.upd&&S.upd.v)}
+  else if(a==='updClear'){delete S.upd}
+  else if(a==='updCopy'){
+    const t=S.upd&&S.upd.url||'';
+    try{navigator.clipboard.writeText(t).catch(()=>{throw 0})}catch(e){const x=document.createElement('textarea');x.value=t;document.body.appendChild(x);x.select();try{document.execCommand('copy')}catch(_){}x.remove()}
+    b.textContent='Скопировано ✓';return}
+  else if(a==='theme'){THEME=v;try{localStorage.setItem('cpu2-theme',v)}catch(e){}applyTheme()}
+  else if(a==='delEmp'){
+    if(delArm!==v){delArm=v;render();return}
+    delArm=null;S.emps=S.emps.filter(e=>e.tn!==v);
+    if(S.me===v){const f=S.emps.find(hasData)||S.emps[0];S.me=f?f.tn:''}
+  }
+  else if(a==='addEmp'){
+    const tn=(document.getElementById('addTn').value||'').trim().replace(/\s+/g,''),h=parseFloat(String(document.getElementById('addHours').value).replace(',','.'))||0;
+    if(!/^\d{3,}$/.test(tn))addMsg='Введите табельный номер цифрами.';
+    else if(S.emps.some(e=>e.tn===tn))addMsg='Сотрудник с номером '+tn+' уже есть в списке.';
+    else if(!S.agg)addMsg='Сначала загрузите детализацию продаж: без неё искать негде.';
+    else{
+      const x=S.agg[tn];
+      if(!x){addMsg=`По номеру ${tn} в загруженной выгрузке продаж нет, сотрудник не добавлен. Проверьте номер или загрузите свежую выгрузку.`;render();return}
+      S.emps.push({name:x&&x.name?x.name:'ТН '+tn,tn,hours:h,m:x?x.m.slice():Array(9).fill(0),b:x?x.b.slice():Array(7).fill(0),nodata:!x});recalcCustom();
+      addMsg=x?`Добавлен: ${x.name||tn}. `+(h?'':'Впишите ему часы ниже (раздел «Факт по сотрудникам»), иначе плана не будет.'):`Номер ${tn} добавлен, но в загруженной выгрузке продаж по нему нет. Проверьте номер или загрузите свежую выгрузку.`;
+    }
+  }
+  else if(a==='pinGen'){S.pins=S.pins||{};const used=new Set(Object.values(S.pins));for(const e of S.emps.filter(hasData))if(!S.pins[e.tn]){let x;do{x=String(1000+Math.floor(Math.random()*9000))}while(used.has(x));used.add(x);S.pins[e.tn]=x}}
+  else if(a==='pinClear'){S.pins={}}
+  else if(a==='goalEdit'){editOrder=!editOrder}
+  else if(a==='goalReset'){delete S.goalOrder}
+  else if(a==='shift'){S.shifts[v]=S.shifts[v]===false;}
+  else if(a==='days'){S.passed=Math.min(S.month,Math.max(1,S.passed+Number(v)))}
+  else if(a==='pull'){pull(false);return}
+  else if(a==='push'){push(true);return}
+  else if(a==='reset'){const hh=S.history;S=fresh();if(hh)S.history=hh;try{localStorage.removeItem(KEY);localStorage.removeItem(KEY+'-g')}catch(e){}}
+  save();if(saveErr&&a==='cuAdd')cuMsg+=' ⚠ Не удалось сохранить на устройстве (память переполнена): после перезапуска показатель может пропасть.';render();
+});
+document.addEventListener('change',ev=>{
+  const t=ev.target;
+  if(t.id==='histSel'){HIST.k=t.value;render();return}
+  if(t.id==='histWho'){HIST.who=t.value;render();return}
+  if(t.id==='syUrl'||t.id==='syKey'||t.id==='syPw'){
+    SY[{syUrl:'url',syKey:'key',syPw:'pw'}[t.id]]=t.value.trim();
+    try{localStorage.setItem('cpu2-sync',JSON.stringify(SY))}catch(e){}
+    syMsg='';return} // без перерисовки: иначе при переходе между полями следующее поле пересоздаётся и теряет ввод, а нажатие кнопки не срабатывает
+  if(!canEdit()&&t.id!=='meSel')return;
+  if(t.id==='fileIn'){if(t.files&&t.files[0])importFile(t.files[0]);return}
+  if(t.id==='meSel'){S.me=t.value;save();render();return}
+  const p=t.dataset&&t.dataset.path;if(!p)return;
+  if(p.startsWith('pins.')){S.pins=S.pins||{};const tn=p.slice(5),x=String(t.value).replace(/\D/g,'');if(x)S.pins[tn]=x;else delete S.pins[tn];save();render();return}
+  if(p.startsWith('upd.')){S.upd=S.upd||{};const f=p.slice(4);S.upd[f]=f==='v'?(parseInt(t.value,10)||0):t.value.trim();save();render();return}
+  if(p.startsWith('cu.')){const [,i,f]=p.split('.'),c=(S.custom||[])[Number(i)];if(c){if(f==='q')c.q=t.value.trim();else if(f==='n')c.n=t.value.trim();else if(f==='by')c.by=t.value==='sum'?'sum':'qty';recalcCustom()}save();render();return}
+  let v=parseFloat(String(t.value).replace(',','.'));if(!isFinite(v)||v<0)v=0;
+  if(p.startsWith('tg.')){const key=p.slice(3);if(String(t.value).trim()==='')delete S.targets[key];else S.targets[key]=v/100}
+  else if(p.startsWith('man.')){const key=p.slice(4);if(String(t.value).trim()==='')delete S.man[key];else S.man[key]=v}
+  else if(p==='targetPct')S.target=v/100;else if(p==='capPct')S.cap=Math.max(.1,v/100);
+  else if(/^t[123]p$/.test(p))S[p.slice(0,2)]=v/100;
+  else if(p==='staleDays')S.staleDays=Math.round(v);
+  else if(p==='month'){S.month=Math.max(1,Math.round(v));S.passed=Math.min(S.passed,S.month)}
+  else{const k=p.split('.');let o=S;for(let i=0;i<k.length-1;i++)o=o[k[i]];o[k[k.length-1]]=v}
+  save();render();
+});
+initDrag();
+render();
+// телефоны без пароля забирают данные при открытии, раз в 5 минут и при возврате в приложение
+let polling=false;
+function startPoll(){
+  if(polling||!syOn()||SY.pw)return;polling=true;
+  setInterval(()=>{if(!document.hidden)pull(true)},60000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)pull(true)});
+}
+if(syOn()&&!SY.pw){pull(true);startPoll()}
+
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+
+</html>
