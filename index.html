@@ -4,7 +4,7 @@
 .medalCard img{height:92px;width:auto;flex:none}.medalCard b{font-size:18px;display:block}
 .mini{height:22px;width:auto;vertical-align:-5px;margin-left:4px}
 .imgbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.imgbar select{flex:1 1 140px;min-width:0}
-#imgov{position:fixed;inset:0;z-index:99;background:rgba(10,8,24,.92);display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px;overflow:auto}
+#imgov{position:fixed;inset:0;z-index:99;background:#0f0c22;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px;overflow:auto}
 #imgov img{max-width:100%;height:auto;border-radius:14px;background:#fff}
 #imgov .bt{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;position:sticky;top:0}
 #imgov .hint{color:#cfcaf5;text-align:center;margin:0}
@@ -153,7 +153,8 @@ body.dragging{-webkit-user-select:none;user-select:none;overscroll-behavior:cont
 .note b{font-weight:700}.note .btn{padding:8px 14px;flex:none}
 .imp{border-radius:14px;padding:10px 12px;background:var(--tile);border-left:4px solid var(--muted);font-size:13px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .imp b{font-size:14px}.imp ul{margin:0;padding-left:18px}.imp li{margin:2px 0}
-.imp.err{border-left-color:var(--bad)}.imp.ok{border-left-color:var(--good)}.imp.ask{border-left-color:var(--warn)}
+.imp.err{border-left-color:var(--bad)}.imp.ok{border-left-color:var(--good)}
+.imp.warn{border-left-color:var(--warn)}.imp.ask{border-left-color:var(--warn)}
 .imp .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .hsel{display:grid;gap:8px}
 .stale{background:color-mix(in srgb,var(--warn) 18%,var(--surface));border:1px solid var(--warn);border-radius:16px;padding:10px 14px;font-size:14px}
@@ -184,7 +185,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 14;
+const APP_VERSION = 23;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -209,12 +210,52 @@ try {
 catch (e) { }
 const IS_WEB = location.protocol !== 'file:';
 const IS_APP = true;
-const DEFAULT_SY = { url: '', key: '' };
+const DEFAULT_SY = { url: 'https://script.google.com/macros/s/AKfycbz2xDT4n-yrjoW6Tl82rw8CJbX8tdmJsSMmfWPYa5n0dIEl86poaJvzTnKXFvuCf6q0/exec', key: '' };
 let SY = { url: DEFAULT_SY.url, key: DEFAULT_SY.key, pw: '' };
 try {
     SY = Object.assign(SY, JSON.parse(localStorage.getItem('cpu2-sync') || '{}'));
 }
 catch (e) { }
+// Переход со старой схемы (ссылка и ключ) на общую (код офиса): старые настройки сбрасываются, данные администратора остаются
+let MIGRATED = false;
+try {
+    if (DEFAULT_SY.url && SY.url && SY.url !== DEFAULT_SY.url) {
+        MIGRATED = true;
+        const wasAdmin = !!SY.pw;
+        SY = { url: DEFAULT_SY.url, key: '', pw: '' };
+        localStorage.setItem('cpu2-sync', JSON.stringify(SY));
+        localStorage.removeItem('cpu2-login');
+        if (!wasAdmin) { S.emps = []; delete S.pins; }
+    }
+    else if (DEFAULT_SY.url && !/^[A-Z0-9]{4,16}$/.test(normKey(SY.key))) {
+        SY.key = ''; SY.url = DEFAULT_SY.url;
+    }
+}
+catch (e) { }
+let OFFNAME = '', LASTBY = '';
+try { OFFNAME = localStorage.getItem('cpu2-oname') || ''; } catch (e) { }
+const OFFICE_HOMO = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'Х': 'X' };
+const normKey = k => String(k || '').toUpperCase().replace(/[АВЕКМНОРСТХ]/g, ch => OFFICE_HOMO[ch]).replace(/[^A-Z0-9]/g, '');
+// Данные разных офисов на одном устройстве не смешиваются: при смене кода офиса всё общее стирается
+function officeSwitched() {
+    try {
+        const tag = localStorage.getItem('cpu2-oc');
+        if (tag && tag !== normKey(SY.key)) { resetForOffice(); return true; }
+    } catch (e) { }
+    return false;
+}
+function setOfficeTag() { try { localStorage.setItem('cpu2-oc', normKey(SY.key)); } catch (e) { } }
+function resetForOffice() {
+    const f = fresh();
+    for (const k of SHARED) S[k] = f[k];
+    delete S.pins;
+    S.rawG = undefined;
+    try { localStorage.removeItem(KEY + '-g'); } catch (e) { }
+    LOGIN = null; SRVLOCK = false; syTs = 0; lastSent = ''; OFFNAME = '';
+    try { localStorage.removeItem('cpu2-login'); localStorage.removeItem('cpu2-oname'); } catch (e) { }
+    save(true);
+}
+try { if (!localStorage.getItem('cpu2-oc') && S.emps.length && /^[A-Z0-9]{4,16}$/.test(normKey(SY.key))) setOfficeTag(); } catch (e) { }
 let syMsg = '', lastSent = '', pushT = null;
 const syOn = () => IS_APP && SY.url && SY.key;
 const canEdit = () => !syOn() || !!SY.pw;
@@ -225,9 +266,10 @@ try {
 }
 catch (e) { }
 const hasPins = () => S.pins && Object.values(S.pins).some(x => String(x || '').length > 0);
-const validLogin = () => !!(LOGIN && LOGIN.tn && S.pins && String(S.pins[LOGIN.tn] || '') !== '' && String(S.pins[LOGIN.tn]) === String(LOGIN.pin) && S.emps.some(e => e.tn === LOGIN.tn));
-const needLogin = () => syOn() && !SY.pw && hasPins() && !validLogin();
-const lockTn = () => (syOn() && !SY.pw && hasPins() && validLogin()) ? LOGIN.tn : null;
+let SRVLOCK = false;
+const validLogin = () => !!(LOGIN && LOGIN.tn && LOGIN.srv);
+const needLogin = () => syOn() && !SY.pw && (SRVLOCK || hasPins()) && !validLogin();
+const lockTn = () => (syOn() && !SY.pw && validLogin()) ? LOGIN.tn : null;
 let loginMsg = '';
 let SEEN = 0, NOTE = 0;
 try {
@@ -331,9 +373,60 @@ function pull(silent) {
         syMsg = 'Загружаю…';
         softRender();
     }
-    fetch(SY.url + (SY.url.includes('?') ? '&' : '?') + 'k=' + encodeURIComponent(SY.key)).then(r => r.json()).then(j => {
+    officeSwitched();
+    const req = { action: 'get', k: SY.key };
+    if (SY.pw)
+        req.pw = SY.pw;
+    else if (LOGIN && LOGIN.tn) {
+        req.tn = LOGIN.tn;
+        req.pin = LOGIN.pin;
+    }
+    fetch(SY.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(req) }).then(r => r.json()).then(j => {
+        if (!j.ok && j.error === 'login') {
+            LOGIN = null;
+            SRVLOCK = true;
+            try {
+                localStorage.removeItem('cpu2-login');
+            }
+            catch (e) { }
+            loginMsg = 'Неверный табельный номер или ПИН.';
+            syFail = false;
+            softRender();
+            return;
+        }
+        if (!j.ok && j.error === 'locked') {
+            loginMsg = 'Слишком много попыток. Подождите 10 минут.';
+            syFail = false;
+            softRender();
+            return;
+        }
         if (!j.ok)
-            throw new Error(j.error === 'key' ? 'неверный ключ' : 'ответ сервера');
+            throw new Error(j.error === 'key' ? 'неверный код офиса' : 'ответ сервера');
+        try {
+            localStorage.setItem('cpu2-oc', normKey(SY.key));
+            if (j.office) { OFFNAME = j.office; localStorage.setItem('cpu2-oname', OFFNAME); }
+            if (j.by !== undefined) LASTBY = j.by;
+        } catch (e) { }
+        if (j.locked) {
+            SRVLOCK = true;
+            if (j.strict && S.pins && !SY.pw)
+                delete S.pins;
+            syFail = false;
+            softRender();
+            return;
+        }
+        SRVLOCK = false;
+        if (j.strict && !SY.pw && S.pins)
+            delete S.pins;
+        if (LOGIN && LOGIN.tn && !SY.pw && !LOGIN.srv) {
+            LOGIN.srv = true;
+            try {
+                localStorage.setItem('cpu2-login', JSON.stringify(LOGIN));
+            }
+            catch (e) { }
+            loginMsg = '';
+            tab = 'goals';
+        }
         const d = j.data;
         if (!d || !d.state) {
             syFail = false;
@@ -360,7 +453,7 @@ function pull(silent) {
                 else if (d.ts > SEEN)
                     NOTE = d.ts;
             }
-            syMsg = 'Данные обновлены: ' + new Date(d.ts).toLocaleString('ru-RU') + '.';
+            syMsg = 'Данные обновлены: ' + new Date(d.ts).toLocaleString('ru-RU') + '.' + (LASTBY ? ' Отправил: ' + LASTBY + '.' : '');
         }
         startPoll();
         if (fresh || !silent || wasFail)
@@ -373,18 +466,26 @@ function pull(silent) {
 function push(force) {
     if (!(syOn() && SY.pw))
         return;
+    if (officeSwitched()) {
+        syMsg = 'Код офиса изменился: данные прежнего офиса удалены с этого телефона. Введите данные заново или нажмите «Забрать данные».';
+        softRender();
+        return;
+    }
     if (!S.emps.length)
         return;
-    const body = JSON.stringify({ pw: SY.pw, state: sharedState() });
+    const body = JSON.stringify({ k: SY.key, pw: SY.pw, state: sharedState() });
     if (!force && body === lastSent)
         return;
     fetch(SY.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body }).then(r => r.json()).then(j => {
         if (j.ok) {
+            setOfficeTag();
             lastSent = body;
-            syMsg = 'Отправлено на сервер: ' + new Date(j.ts).toLocaleString('ru-RU') + '.';
+            if (j.by) LASTBY = j.by;
+            if (j.office) { OFFNAME = j.office; try { localStorage.setItem('cpu2-oname', OFFNAME); } catch (e) { } }
+            syMsg = 'Отправлено на сервер: ' + new Date(j.ts).toLocaleString('ru-RU') + (OFFNAME ? '. Офис «' + OFFNAME + '»' : '') + (j.by ? ', вход: ' + j.by : '') + '.';
         }
         else
-            syMsg = j.error === 'pw' ? 'Неверный пароль администратора.' : 'Ошибка сервера.';
+            syMsg = j.error === 'pw' ? 'Неверный пароль администратора.' : j.error === 'key' ? 'Неверный код офиса.' : j.error === 'locked' ? 'Слишком много попыток. Подождите 10 минут.' : 'Ошибка сервера.';
         softRender();
     }).catch(e => { syMsg = 'Не удалось отправить: ' + e.message; softRender(); });
 }
@@ -419,7 +520,7 @@ function pinCard() {
     return `<div class="sect">Вход сотрудников по ПИН-коду</div><div class="card"><p class="muted" style="margin:0">Когда задан хотя бы один ПИН, остальные телефоны (без пароля администратора) просят войти: табельный номер и ПИН, и показывают только данные этого сотрудника. Раздайте ПИН людям сами. Пустое поле = человек не сможет войти.</p><div class="list">${rows}</div><button class="btn ghost" data-a="pinGen">Создать недостающие ПИН</button><button class="btn ghost" data-a="pinClear">Отключить вход по ПИН для всех</button></div>`;
 }
 function loginView() {
-    return `<div class="sect">Вход</div><div class="card"><p class="muted" style="margin:0">Введите свой табельный номер и ПИН-код. ПИН выдаёт администратор.</p>
+    return `<div class="sect">Вход${OFFNAME ? ' · ' + esc(OFFNAME) : ''}</div><div class="card"><p class="muted" style="margin:0">Введите свой табельный номер и ПИН-код. ПИН выдаёт администратор.</p>
   <input id="lgTn" type="text" inputmode="numeric" placeholder="Табельный номер" aria-label="Табельный номер" autocomplete="off">
   <input id="lgPin" type="password" inputmode="numeric" placeholder="ПИН-код" aria-label="ПИН-код" autocomplete="off">
   <button class="btn" data-a="login">Войти</button><div class="muted" role="status">${esc(loginMsg)}</div></div>
@@ -429,12 +530,12 @@ function syCard() {
     if (!IS_APP)
         return '';
     return `<div class="sect">Синхронизация между телефонами</div><div class="card">
-  <p class="muted" style="margin:0">Ссылка и ключ одинаковые на всех телефонах. Пароль администратора вводите только на своём: с него данные уходят на сервер, остальные телефоны их забирают при открытии. Изменения на других телефонах перезапишутся при обновлении.</p>
-  <input id="syUrl" type="url" placeholder="Ссылка на скрипт (…/exec)" value="${esc(SY.url)}" aria-label="Ссылка на скрипт">
-  <input id="syKey" type="text" placeholder="Ключ чтения" value="${esc(SY.key)}" aria-label="Ключ чтения">
+  <p class="muted" style="margin:0">Код офиса одинаковый на всех телефонах вашего офиса. Пароль администратора вводите только на своём: с него данные уходят на сервер, остальные телефоны их забирают при открытии. Изменения на других телефонах перезапишутся при обновлении.</p>
+  ${DEFAULT_SY.url ? '' : `<input id="syUrl" type="url" placeholder="Ссылка на скрипт (…/exec)" value="${esc(SY.url)}" aria-label="Ссылка на скрипт">`}
+  <input id="syKey" type="text" placeholder="Код офиса (например 7A79000)" value="${esc(SY.key)}" maxlength="16" autocapitalize="characters" autocomplete="off" aria-label="Код офиса">
   <input id="syPw" type="password" placeholder="Пароль администратора (только у вас)" value="${esc(SY.pw)}" aria-label="Пароль администратора">
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-a="pull">Забрать данные</button>${SY.pw ? '<button class="btn ghost" data-a="push">Отправить данные</button>' : ''}</div>
-  <div class="muted" role="status">${syMsg || (syOn() ? (SY.pw ? 'Режим администратора: изменения уходят на сервер сами.' : 'Режим просмотра: данные подтягиваются сами каждую минуту.') : 'Заполните ссылку и ключ.')}</div></div>`;
+  <div class="muted" role="status">${syMsg || (syOn() ? (SY.pw ? 'Режим администратора: изменения уходят на сервер сами.' : 'Режим просмотра: данные подтягиваются сами каждую минуту.') : 'Введите код офиса.')}</div></div>`;
 }
 let tab = 'goals', openEmp = null, editOrder = false, addMsg = '', delArm = null;
 let THEME = 'auto';
@@ -770,12 +871,23 @@ function finishImport(p, closePrev) {
     save();
     if (p.last)
         lines.unshift(`Данные до ${fmtDay(p.last)} (${monthLabel(p.last.slice(0, 7))}), прошло дней: ${S.passed} из ${S.month}.`);
+    const real = S.emps.filter(e => !String(e.name || '').startsWith('—')), total = real.length, found = real.filter(e => agg[e.tn]).length, missing = real.filter(e => !agg[e.tn]).map(e => e.name);
+    let suspicious = false;
+    lines.unshift(`Найдено сотрудников вашего офиса: ${found} из ${total}. Чужих табельных номеров в отчёте: ${added.length}.`);
+    if (OFFNAME && syOn() && SY.pw)
+        lines.unshift(`Загружено в офис «${OFFNAME}».`);
+    if (missing.length)
+        lines.push(`Нет в отчёте: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ' и ещё ' + (missing.length - 8) : ''}.`);
     if (added.length)
-        lines.push(`Не добавлены (есть в файле): ${added.join(', ')}. Добавьте по табельному номеру ниже.`);
+        lines.push(`Не добавлены (есть в файле): ${added.slice(0, 8).join(', ')}${added.length > 8 ? ' и ещё ' + (added.length - 8) : ''}. Добавьте по табельному номеру ниже, если они из вашего офиса.`);
+    if (total && (found < total || added.length >= Math.max(2, found))) {
+        suspicious = true;
+        lines.push(found < total && added.length ? '⚠ Часть ваших сотрудников не найдена, а в отчёте есть чужие табельные. Проверьте, что это отчёт вашего офиса.' : found < total ? '⚠ Не все ваши сотрудники есть в отчёте. Если они сегодня не работали, всё в порядке.' : '⚠ В отчёте много чужих табельных номеров. Проверьте, что это отчёт вашего офиса.');
+    }
     p.warnings.forEach(w => lines.push('⚠ ' + w));
     if (syOn() && SY.pw)
         lines.push('Данные уйдут на сервер сами, у сотрудников появится плашка «Данные обновлены».');
-    impBox = { t: 'ok', title: `Готово: ${p.rows.length} ${plural(p.rows.length, 'строка', 'строки', 'строк')}, ${Object.keys(agg).length} ${plural(Object.keys(agg).length, 'сотрудник', 'сотрудника', 'сотрудников')}.`, lines };
+    impBox = { t: suspicious ? 'warn' : 'ok', title: `Готово: ${p.rows.length} ${plural(p.rows.length, 'строка', 'строки', 'строк')}, ${Object.keys(agg).length} ${plural(Object.keys(agg).length, 'сотрудник', 'сотрудника', 'сотрудников')}.`, lines };
 }
 function importFile(file) {
     PENDING = null;
@@ -809,7 +921,9 @@ function impCard() {
     const b = impBox;
     const box = b ? `<div class="imp ${b.t}" role="status"><b>${esc(b.title)}</b>${b.lines && b.lines.length ? '<ul>' + b.lines.map(l => `<li>${esc(l)}</li>`).join('') + '</ul>' : ''}${b.ask && PENDING ? '<div class="acts"><button class="btn" data-a="impGo">Закрыть месяц и загрузить</button><button class="btn ghost" data-a="impCancel">Отмена</button></div>' : ''}</div>`
         : `<div class="muted" id="impMsg" role="status">${S.importedRows ? `Последняя загрузка: ${S.importedRows} строк.` : 'Пока загружены данные из вашей таблицы на момент выгрузки.'}</div>`;
-    return `<div class="sect">Детализация продаж</div><div class="card"><p class="muted" style="margin:0">Загрузите выгрузку продаж (.xlsx, .ods или .csv) с теми же колонками, что на листе «Детализация продаж». Перед загрузкой приложение проверяет колонки и месяц и объяснит, если что-то не так. Факт по всем показателям пересчитается сам. Файл остаётся на вашем устройстве.</p>
+    const code = normKey(SY.key), masked = code ? code.slice(0, 2) + '…' + code.slice(-2) : '';
+    const dest = (syOn() && SY.pw) ? `<div class="medalCard" style="padding:8px 12px"><div><b>Отчёт уйдёт в офис: ${OFFNAME ? '«' + esc(OFFNAME) + '»' : 'не определён'}</b><span class="muted">Код ${esc(masked)}${LASTBY ? ' · последняя отправка: ' + esc(LASTBY) : ''}. Если это не ваш офис, не загружайте файл и проверьте код в разделе «Синхронизация».</span></div></div>` : '';
+    return `<div class="sect">Детализация продаж</div><div class="card">${dest}<p class="muted" style="margin:0">Загрузите выгрузку продаж (.xlsx, .ods или .csv) с теми же колонками, что на листе «Детализация продаж». Перед загрузкой приложение проверяет колонки и месяц и объяснит, если что-то не так. Факт по всем показателям пересчитается сам. Файл остаётся на вашем устройстве.</p>
   <input id="fileIn" type="file" accept=".xlsx,.xls,.ods,.csv" aria-label="Файл детализации" style="font:inherit;max-width:100%">
   ${box}</div>`;
 }
@@ -1041,7 +1155,7 @@ let medalImg = null;
 function loadMedal() { return new Promise(res => { if (medalImg) return res(medalImg); const im = new Image(); im.onload = () => { medalImg = im; res(im); }; im.onerror = () => res(null); im.src = MEDAL; }); }
 function rrect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function fitText(c, t, maxW, size, weight) { let s = size; c.font = `${weight} ${s}px system-ui,-apple-system,Roboto,Arial,sans-serif`; while (c.measureText(t).width > maxW && s > 16) { s -= 2; c.font = `${weight} ${s}px system-ui,-apple-system,Roboto,Arial,sans-serif`; } return s; }
-async function buildDayImage(who) {
+async function buildDayImage(who, opt) {
     const rem = Math.max(1, S.month - S.passed), toMon = Math.min(nextMonday(), rem), nS = Math.max(1, S.emps.filter(e => hasData(e) && S.shifts[e.tn] !== false).length);
     const isOff = who === 'office', e = isOff ? null : (S.emps.find(x => x.tn === who) || S.emps[0]);
     const all = [...MAIN.map((m, i) => ({ n: m.n, u: m.u, k: 'm', i, d: m.d })), ...DATA.brand.names.map((n, i) => ({ n, u: BR[i].u, k: 'b', i }))];
@@ -1054,8 +1168,11 @@ async function buildDayImage(who) {
         const need = Math.ceil(left / rem * toMon);
         rows.push({ x, plan, fact, t, goal, left, day, per: Math.ceil(day / nS), need, needP: Math.ceil(need / nS), done: left <= 0 });
     }
-    const med = isOff ? null : medalOf(e), W = 1080, P = 44, HH = isOff || !med.ok ? 330 : 400, RH = 176, G = 14, FH = 120, BN = isOff ? 0 : 96;
-    const RHD = 112, rh = r => r.done ? RHD : RH, H = HH + BN + 24 + rows.reduce((a, r) => a + rh(r) + G, 0) + FH;
+    let chunks = [rows];
+    if (opt && opt.paged) { chunks = []; let cur = [], hh0 = 0; for (const r of rows) { const hh = (r.done ? 112 : 176) + 14; if (cur.length && hh0 + hh > 1250) { chunks.push(cur); cur = []; hh0 = 0; } cur.push(r); hh0 += hh; } if (cur.length) chunks.push(cur); if (!chunks.length) chunks = [[]]; }
+    const pi = (opt && opt.part) || 0, shown = chunks[pi] || [], np = chunks.length;
+    const med = isOff ? null : medalOf(e), W = 1080, P = 44, HH = isOff || !med.ok ? 330 : 400, RH = 176, G = 14, FH = 120, BN = isOff || pi > 0 ? 0 : 96;
+    const RHD = 112, rh = r => r.done ? RHD : RH, H = HH + BN + 24 + shown.reduce((a, r) => a + rh(r) + G, 0) + FH;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const c = cv.getContext('2d'), F = 'system-ui,-apple-system,Roboto,Arial,sans-serif';
     c.fillStyle = '#f3f1fb'; c.fillRect(0, 0, W, H);
@@ -1063,7 +1180,7 @@ async function buildDayImage(who) {
     c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.lineTo(W, 0); c.lineTo(W, HH - 40); c.quadraticCurveTo(W / 2, HH + 30, 0, HH - 40); c.closePath(); c.fill();
     c.fillStyle = 'rgba(255,255,255,.08)'; c.beginPath(); c.arc(W - 90, 60, 190, 0, 7); c.fill(); c.beginPath(); c.arc(70, HH - 70, 120, 0, 7); c.fill();
     c.fillStyle = '#fff'; c.textBaseline = 'alphabetic';
-    c.font = `800 30px ${F}`; c.globalAlpha = .8; c.fillText('АЕГИС · ПЛАН НА ДЕНЬ', P, 78); c.globalAlpha = 1;
+    c.font = `800 30px ${F}`; c.globalAlpha = .8; c.fillText('АЕГИС · ПЛАН НА ДЕНЬ' + (np > 1 ? ' · ' + (pi + 1) + ' из ' + np : ''), P, 78); c.globalAlpha = 1;
     const title = isOff ? 'Офис' : e.name, ts = fitText(c, title, med && med.ok ? 620 : W - 2 * P, 62, 800);
     c.fillText(title, P, 156);
     c.font = `500 27px ${F}`; c.globalAlpha = .9; c.fillText(S.asof ? 'Данные на ' + fmtDay(S.asof) : 'Данные не загружены', P, 200); c.globalAlpha = 1;
@@ -1072,14 +1189,14 @@ async function buildDayImage(who) {
         c.fillStyle = 'rgba(255,255,255,.18)'; rrect(c, cx, 232, cw, 60, 30); c.fill(); c.fillStyle = '#fff'; c.font = `800 34px ${F}`; c.fillText(String(n), cx + 22, 273); c.font = `500 25px ${F}`; c.fillText(l, cx + 34 + w1, 273); cx += cw + 14; }
     if (med && med.ok) { const im = await loadMedal(); if (im) { const mh = 340, mw = im.width / im.height * mh; c.save(); c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 24; c.shadowOffsetY = 10; c.drawImage(im, W - P - mw + 10, 24, mw, mh); c.restore(); } }
     let y = HH + 10;
-    if (!isOff) {
+    if (!isOff && pi === 0) {
         c.fillStyle = med.ok ? '#d9f4e4' : '#ffffff'; rrect(c, P, y, W - 2 * P, 80, 24); c.fill();
         c.fillStyle = med.ok ? '#117a3d' : '#2a2550'; c.font = `800 30px ${F}`;
         c.fillText(med.ok ? 'Планы выполнены! Отличная работа!' : `Выполнено планов: ${med.d} из ${med.n}`, P + 26, y + 50);
         y += BN;
     }
     y += 14;
-    for (const r of rows) {
+    for (const r of shown) {
         const RHr = rh(r);
         c.fillStyle = '#ffffff'; c.shadowColor = 'rgba(60,40,140,.10)'; c.shadowBlur = 16; c.shadowOffsetY = 4; rrect(c, P, y, W - 2 * P, RHr, 26); c.fill(); c.shadowColor = 'transparent';
         const ix = P + 28, iw = W - 2 * P - 56;
@@ -1109,25 +1226,37 @@ async function buildDayImage(who) {
     c.fillStyle = '#7a7596'; c.font = `500 22px ${F}`; c.textAlign = 'center';
     c.fillText('В день = (цель − факт) ÷ оставшиеся дни · цель задаётся в сводке', W / 2, y + 40);
     c.fillText('Сформировано в «Аегис» · ' + new Date().toLocaleDateString('ru-RU'), W / 2, y + 76); c.textAlign = 'left';
+    cv.__parts = np;
     return cv;
 }
 function closeImg() { const o = document.getElementById('imgov'); if (o) { if (o.dataset.u) URL.revokeObjectURL(o.dataset.u); o.remove(); } }
 async function showDayImage(who) {
     closeImg();
     const ov = document.createElement('div'); ov.id = 'imgov'; ov.innerHTML = '<p class="hint">Рисую картинку…</p>'; document.body.appendChild(ov);
+    const fail = () => { ov.innerHTML = '<p class="hint">Не удалось нарисовать картинку.</p><div class="bt"><button class="btn" id="imgX">Закрыть</button></div>'; ov.querySelector('#imgX').onclick = closeImg; };
+    const e = who === 'office' ? null : S.emps.find(x => x.tn === who), fn = 'plan-' + (e ? e.tn : 'office') + '.png';
+    let probe = false;
+    try { probe = !!(navigator.canShare && navigator.canShare({ files: [new File([new Blob(['x'])], 'a.png', { type: 'image/png' })] })); } catch (x) { }
+    const shell = location.protocol === 'file:' && !probe;
+    if (shell) {
+        // Приложение для Android: системной отправки нет. Рисуем страницы по размеру экрана, их удобно снять скриншотом.
+        try {
+            const first = await buildDayImage(who, { paged: true, part: 0 }), n = first.__parts, imgs = [first.toDataURL('image/png')];
+            for (let k = 1; k < n; k++) imgs.push((await buildDayImage(who, { paged: true, part: k })).toDataURL('image/png'));
+            ov.innerHTML = `<div class="bt"><button class="btn" id="imgX">Закрыть</button></div><p class="hint">В приложении нет кнопки «Поделиться». Сделайте скриншот каждой ${n > 1 ? 'части (' + n + ' шт.), листая вниз' : 'картинки'} и отправьте в чат.</p>` + imgs.map((u, k) => `<img src="${u}" alt="План на день, часть ${k + 1}">`).join('');
+            ov.querySelector('#imgX').onclick = closeImg;
+        } catch (err) { fail(); }
+        return;
+    }
     let cv;
-    try { cv = await buildDayImage(who); } catch (err) { ov.innerHTML = '<p class="hint">Не удалось нарисовать картинку.</p><div class="bt"><button class="btn" id="imgX">Закрыть</button></div>'; ov.querySelector('#imgX').onclick = closeImg; return; }
+    try { cv = await buildDayImage(who); } catch (err) { fail(); return; }
     cv.toBlob(blob => {
         const url = URL.createObjectURL(blob); ov.dataset.u = url;
-        const e = who === 'office' ? null : S.emps.find(x => x.tn === who), fn = 'plan-' + (e ? e.tn : 'office') + '.png';
-        ov.innerHTML = `<div class="bt"><button class="btn" id="imgShare">Поделиться</button><button class="btn ghost" id="imgSave">Скачать</button><button class="btn ghost" id="imgX">Закрыть</button></div><img src="${url}" alt="План на день"><p class="hint">Если кнопки не сработали, сделайте скриншот этого экрана.</p>`;
+        ov.innerHTML = `<div class="bt">${probe ? '<button class="btn" id="imgShare">Поделиться</button>' : ''}<button class="btn ghost" id="imgSave">Скачать</button><button class="btn ghost" id="imgX">Закрыть</button></div><img src="${url}" alt="План на день"><p class="hint">Можно также сделать скриншот.</p>`;
         ov.querySelector('#imgX').onclick = closeImg;
         ov.querySelector('#imgSave').onclick = () => { const a = document.createElement('a'); a.href = url; a.download = fn; document.body.appendChild(a); a.click(); a.remove(); };
-        ov.querySelector('#imgShare').onclick = () => {
-            const f = new File([blob], fn, { type: 'image/png' });
-            if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: 'План на день' }).catch(() => { });
-            else ov.querySelector('#imgSave').click();
-        };
+        const sh = ov.querySelector('#imgShare');
+        if (sh) sh.onclick = () => { const f = new File([blob], fn, { type: 'image/png' }); navigator.share({ files: [f], title: 'План на день' }).catch(() => { }); };
     }, 'image/png');
 }
 document.addEventListener('click', ev => {
@@ -1301,10 +1430,10 @@ function gateView() {
     document.getElementById('title').textContent = 'Аегис';
     ['dayinfo', 'updbar', 'ctrl', 'tabs'].forEach(i => document.getElementById(i).innerHTML = '');
     document.getElementById('dayinfo').hidden = true;
-    document.getElementById('view').innerHTML = `<div class="sect">Подключение к данным</div><div class="card"><p class="muted" style="margin:0">На этом устройстве пока нет данных: сотрудники, планы и продажи приходят только с сервера. Впишите ссылку и ключ, которые выдал администратор, и нажмите «Забрать данные».</p></div>` + syCard();
+    document.getElementById('view').innerHTML = `<div class="sect">Подключение к данным</div><div class="card"><p class="muted" style="margin:0">На этом устройстве пока нет данных: сотрудники, планы и продажи приходят только с сервера. Впишите код офиса, который выдал руководитель, и нажмите «Забрать данные». Потом введёте табельный номер и ПИН.</p></div>` + syCard();
 }
 function render() {
-    if (!S.emps.length) {
+    if (!S.emps.length && !needLogin()) {
         gateView();
         return;
     }
@@ -1329,7 +1458,7 @@ function render() {
     const di = document.getElementById('dayinfo');
     di.hidden = false;
     di.dataset.f = '1';
-    di.innerHTML = (S.asof ? `Данные актуальны на <b>${fmtDay(S.asof)}</b> · ` : '') + `прошло дней <b>${S.passed} из ${S.month}</b>` + (syOn() && !SY.pw ? `<br><span class="muted">${syFail ? 'нет связи с сервером, показаны последние данные' : (syTs ? 'обновлено с сервера в ' + new Date(syTs).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : 'ждём данные с сервера')}</span>` : '');
+    di.innerHTML = (OFFNAME ? `<b>${esc(OFFNAME)}</b> · ` : '') + (S.asof ? `Данные актуальны на <b>${fmtDay(S.asof)}</b> · ` : '') + `прошло дней <b>${S.passed} из ${S.month}</b>` + (syOn() && !SY.pw ? `<br><span class="muted">${syFail ? 'нет связи с сервером, показаны последние данные' : (syTs ? 'обновлено с сервера в ' + new Date(syTs).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : 'ждём данные с сервера')}</span>` : '');
     document.getElementById('updbar').innerHTML = noteBar() + staleBar() + updBanner();
     document.getElementById('ctrl').innerHTML = (tab === 'goals' || tab === 'brand') ? scopeSeg() : '';
     document.getElementById('view').innerHTML = { goals: vGoals, brand: vBrand, det: vDet, day: vDay, hist: vHist, set: vSet }[tab]();
@@ -1342,6 +1471,18 @@ document.addEventListener('click', ev => {
     const a = b.dataset.a, v = b.dataset.v;
     if (a === 'login') {
         const tn = (document.getElementById('lgTn').value || '').trim(), pin = (document.getElementById('lgPin').value || '').trim();
+        if (syOn() && !SY.pw) {
+            if (!tn || !pin) {
+                loginMsg = 'Введите табельный номер и ПИН.';
+                render();
+                return;
+            }
+            LOGIN = { tn, pin };
+            loginMsg = 'Проверяю…';
+            syTs = 0;
+            pull(false);
+            return;
+        }
         if (S.pins && String(S.pins[tn] || '') !== '' && String(S.pins[tn]) === pin && S.emps.some(e => e.tn === tn)) {
             LOGIN = { tn, pin };
             try {
@@ -1573,7 +1714,7 @@ document.addEventListener('change', ev => {
         return;
     }
     if (t.id === 'syUrl' || t.id === 'syKey' || t.id === 'syPw') {
-        SY[{ syUrl: 'url', syKey: 'key', syPw: 'pw' }[t.id]] = t.value.trim();
+        SY[{ syUrl: 'url', syKey: 'key', syPw: 'pw' }[t.id]] = t.id === 'syKey' ? normKey(t.value) : t.value.trim();
         try {
             localStorage.setItem('cpu2-sync', JSON.stringify(SY));
         }
