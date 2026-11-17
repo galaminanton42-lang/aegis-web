@@ -93,6 +93,7 @@ main{display:flex;flex-direction:column;gap:12px;padding-top:6px}
 .open .detail{display:flex}
 .drow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px}
 .drow .nm{font-weight:500}
+.drow .muted,.drow .bar{grid-column:1/-1}
 .tbl{width:100%;border-collapse:collapse;font-size:13px}
 .tbl th,.tbl td{padding:8px 6px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
 .tbl th:first-child,.tbl td:first-child{text-align:left;white-space:normal}
@@ -185,7 +186,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -1230,26 +1231,27 @@ async function buildDayImage(who, opt) {
     return cv;
 }
 function closeImg() { const o = document.getElementById('imgov'); if (o) { if (o.dataset.u) URL.revokeObjectURL(o.dataset.u); o.remove(); } }
+const buildAnyImage = (who, o) => who === 'month' ? buildMonthImage(o) : buildDayImage(who, o);
 async function showDayImage(who) {
     closeImg();
     const ov = document.createElement('div'); ov.id = 'imgov'; ov.innerHTML = '<p class="hint">Рисую картинку…</p>'; document.body.appendChild(ov);
     const fail = () => { ov.innerHTML = '<p class="hint">Не удалось нарисовать картинку.</p><div class="bt"><button class="btn" id="imgX">Закрыть</button></div>'; ov.querySelector('#imgX').onclick = closeImg; };
-    const e = who === 'office' ? null : S.emps.find(x => x.tn === who), fn = 'plan-' + (e ? e.tn : 'office') + '.png';
+    const e = who === 'office' ? null : S.emps.find(x => x.tn === who), fn = (who === 'month' ? 'itogi-' + monthKey() : 'plan-' + (e ? e.tn : 'office')) + '.png';
     let probe = false;
     try { probe = !!(navigator.canShare && navigator.canShare({ files: [new File([new Blob(['x'])], 'a.png', { type: 'image/png' })] })); } catch (x) { }
     const shell = location.protocol === 'file:' && !probe;
     if (shell) {
         // Приложение для Android: системной отправки нет. Рисуем страницы по размеру экрана, их удобно снять скриншотом.
         try {
-            const first = await buildDayImage(who, { paged: true, part: 0 }), n = first.__parts, imgs = [first.toDataURL('image/png')];
-            for (let k = 1; k < n; k++) imgs.push((await buildDayImage(who, { paged: true, part: k })).toDataURL('image/png'));
+            const first = await buildAnyImage(who, { paged: true, part: 0 }), n = first.__parts, imgs = [first.toDataURL('image/png')];
+            for (let k = 1; k < n; k++) imgs.push((await buildAnyImage(who, { paged: true, part: k })).toDataURL('image/png'));
             ov.innerHTML = `<div class="bt"><button class="btn" id="imgX">Закрыть</button></div><p class="hint">В приложении нет кнопки «Поделиться». Сделайте скриншот каждой ${n > 1 ? 'части (' + n + ' шт.), листая вниз' : 'картинки'} и отправьте в чат.</p>` + imgs.map((u, k) => `<img src="${u}" alt="План на день, часть ${k + 1}">`).join('');
             ov.querySelector('#imgX').onclick = closeImg;
         } catch (err) { fail(); }
         return;
     }
     let cv;
-    try { cv = await buildDayImage(who); } catch (err) { fail(); return; }
+    try { cv = await buildAnyImage(who); } catch (err) { fail(); return; }
     cv.toBlob(blob => {
         const url = URL.createObjectURL(blob); ov.dataset.u = url;
         ov.innerHTML = `<div class="bt">${probe ? '<button class="btn" id="imgShare">Поделиться</button>' : ''}<button class="btn ghost" id="imgSave">Скачать</button><button class="btn ghost" id="imgX">Закрыть</button></div><img src="${url}" alt="План на день"><p class="hint">Можно также сделать скриншот.</p>`;
@@ -1264,10 +1266,131 @@ document.addEventListener('click', ev => {
     if (!b) return;
     ev.stopPropagation();
     if (b.dataset.img === 'office') return showDayImage('office');
+    if (b.dataset.img === 'month') return showDayImage('month');
     const s = document.getElementById('imgWho'), lk = lockTn();
     showDayImage(lk || (s && s.value) || S.me);
 }, true);
+
+// ===== Итоги месяца (подвкладка во вкладке «На день») =====
+let DAYMODE = 'plan', MV = { k: 'cur', who: 'office' };
 function vDay() {
+    const seg = `<div class="imgbar" role="group" aria-label="Раздел"><button class="btn ${DAYMODE === 'plan' ? '' : 'ghost'}" data-dm="plan" aria-pressed="${DAYMODE === 'plan'}">План на день</button><button class="btn ${DAYMODE === 'month' ? '' : 'ghost'}" data-dm="month" aria-pressed="${DAYMODE === 'month'}">Итоги месяца</button></div>`;
+    return `<div style="display:flex;flex-direction:column;gap:12px">${seg}${DAYMODE === 'month' ? vMonth() : vDayPlan()}</div>`;
+}
+function allDone(A) {
+    if (!A) return false;
+    let n = 0;
+    for (let i = 0; i < 10; i++) { if (!A.p[i]) continue; n++; if (A.f[i] / A.p[i] < 1) return false; }
+    return n > 0;
+}
+function monthData() {
+    const LK = lockTn(), H = S.history || [];
+    let who = MV.who;
+    if (LK && who !== 'office') who = LK;
+    const h = MV.k === 'cur' ? null : (H.find(x => x.k === MV.k) || null), cur = !h;
+    if (who !== 'office' && !(cur ? S.emps.some(e => e.tn === who && hasData(e)) : h.emps.some(e => e.tn === who))) who = 'office';
+    const A = cur ? nowVals(who) : snapVals(h, who), score = cur ? nowScore(who) : snapScore(h, who);
+    const emp = who === 'office' ? null : (cur ? S.emps.find(x => x.tn === who) : h.emps.find(x => x.tn === who));
+    const names = [...MAIN.map(m => m.n), ...DATA.brand.names], units = [...MAIN.map(m => ({ u: m.u, d: m.d })), ...BR.map(b => ({ u: b.u }))];
+    const rows = [];
+    names.forEach((n, i) => { const p = A ? A.p[i] : 0, f = A ? A.f[i] : 0; if (!p) return; rows.push({ n, u: units[i].u, d: units[i].d, f, p, r: f / p, fc: cur ? fcOf(f) / p : null, i }); });
+    let rank = [];
+    if (who === 'office' && !LK) {
+        rank = (cur ? S.emps.filter(hasData).map(e => ({ name: e.name, s: effScore(e), ok: medalOf(e).ok })) : h.emps.map(e => ({ name: e.name, s: snapScore(h, e.tn), ok: allDone(snapVals(h, e.tn)) }))).filter(x => x.s != null).sort((a, b) => b.s - a.s);
+    }
+    return { who, cur, h, A, score, emp, name: who === 'office' ? 'Офис' : (emp ? emp.name : ''), label: monthLabel(cur ? monthKey() : h.k), asof: cur ? S.asof : h.asof, passed: cur ? S.passed : h.passed, month: cur ? S.month : h.month, rows, done: rows.filter(r => r.r >= 1).length, track: rows.filter(r => (r.fc != null ? r.fc : r.r) >= 1).length, medal: allDone(A), rank };
+}
+const pctCol = r => r >= 1 ? '#16a34a' : r >= .7 ? '#d97706' : '#d9372b';
+function vMonth() {
+    const H = (S.history || []).filter(x => x.k !== monthKey()), LK = lockTn();
+    if (MV.k !== 'cur' && !H.some(x => x.k === MV.k)) MV.k = 'cur';
+    const d = monthData(), list = S.emps.filter(hasData);
+    const kOpts = `<option value="cur" ${MV.k === 'cur' ? 'selected' : ''}>${monthLabel(monthKey())} (сейчас)</option>` + H.slice().reverse().map(x => `<option value="${x.k}" ${x.k === MV.k ? 'selected' : ''}>${monthLabel(x.k)}</option>`).join('');
+    const wOpts = LK ? `<option value="office" ${d.who === 'office' ? 'selected' : ''}>Весь офис</option><option value="${esc(LK)}" ${d.who === LK ? 'selected' : ''}>Я</option>` : `<option value="office" ${d.who === 'office' ? 'selected' : ''}>Весь офис</option>` + list.map(e => `<option value="${esc(e.tn)}" ${d.who === e.tn ? 'selected' : ''}>${esc(e.name)}</option>`).join('');
+    const head = `<div class="imgbar"><select id="mSel" aria-label="Месяц">${kOpts}</select><select id="mWho" aria-label="Кто">${wOpts}</select></div>`;
+    if (!d.rows.length) return `${head}<div class="card"><h3>Нет данных за ${d.label}</h3><p class="muted" style="margin:0">Для этого месяца не заданы планы или данные ещё не загружены.</p></div>`;
+    const stats = `<div class="stats"><div class="stat"><b>${d.cur ? d.track : d.done} из ${d.rows.length}</b><span>${d.cur ? 'планов в графике (' + d.done + ' уже закрыто)' : 'планов выполнено'}</span></div><div class="stat"><b>${d.score == null ? '—' : nf(d.score * 100, 0) + ' %'}</b><span>общий балл${d.cur ? ' (по прогнозу)' : ''}</span></div></div>`;
+    const medal = d.who !== 'office' ? (d.medal ? `<div class="medalCard"><img src="${MEDAL}" alt="Награда"><div><b>Планы выполнены!</b><span class="muted">${esc(d.name)}: все основные показатели на 100 % плана и выше.</span></div></div>` : '') : '';
+    const rows = d.rows.map(r => `<div class="drow"><span class="nm">${esc(r.n)}</span><b style="color:${pctCol(r.fc != null ? r.fc : r.r)}">${nf(r.r * 100, 0)} %</b><span class="muted">факт ${val(r.f, r.u, r.d)} из ${val(r.p, r.u, r.d)} ${r.u}${r.fc != null && r.r < 1 ? ', прогноз ' + nf(r.fc * 100, 0) + ' %' : ''}</span><div class="bar ${(r.fc != null ? r.fc : r.r) >= 1 ? 'good' : (r.fc != null ? r.fc : r.r) >= .7 ? 'warn' : 'bad'}"><i style="width:${Math.min(100, r.r * 100)}%"></i></div></div>`).join('');
+    const rank = d.rank.length ? `<div class="sect">Лидеры месяца</div><div class="card">${d.rank.slice(0, 3).map((x, k) => `<div class="drow"><span class="nm">${k + 1}. ${esc(x.name)}${x.ok ? ' <img class="mini" src="' + MEDAL + '" alt="Планы выполнены">' : ''}</span><b>${nf(x.s * 100, 0)} %</b></div>`).join('')}</div>` : '';
+    return `${head}${stats}${medal}<div class="sect">${d.label}${d.asof ? ' · данные до ' + fmtDay(d.asof) : ''}</div><div class="card">${rows}</div>${rank}<div class="card" style="gap:10px"><div class="imgbar"><button class="btn" data-img="month">Картинка: итоги месяца</button></div><p class="muted" style="margin:0">Красивая картинка с итогами для рабочего чата.</p></div>`;
+}
+document.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-dm]');
+    if (!b) return;
+    ev.stopPropagation();
+    DAYMODE = b.dataset.dm === 'month' ? 'month' : 'plan';
+    render();
+}, true);
+document.addEventListener('change', ev => {
+    const t = ev.target;
+    if (t.id === 'mSel') { MV.k = t.value; render(); }
+    else if (t.id === 'mWho') { MV.who = t.value; render(); }
+}, true);
+async function buildMonthImage(opt) {
+    const d = monthData(), W = 1080, P = 44, F = 'system-ui,-apple-system,Roboto,Arial,sans-serif', G = 14, RH = 128, HH = d.medal && d.who !== 'office' ? 400 : 330, FH = 110;
+    let chunks = [d.rows];
+    if (opt && opt.paged) { chunks = []; let cur = [], hh0 = 0; for (const r of d.rows) { const hh = RH + G; if (cur.length && hh0 + hh > 1250) { chunks.push(cur); cur = []; hh0 = 0; } cur.push(r); hh0 += hh; } if (cur.length) chunks.push(cur); if (!chunks.length) chunks = [[]]; }
+    const pi = (opt && opt.part) || 0, shown = chunks[pi] || [], np = chunks.length, last = pi === np - 1;
+    const BN = pi === 0 ? 96 : 0, rankH = last && d.rank.length ? 90 + Math.min(3, d.rank.length) * 84 : 0;
+    const H = HH + BN + 24 + shown.length * (RH + G) + rankH + FH;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#f3f1fb'; c.fillRect(0, 0, W, H);
+    const g = c.createLinearGradient(0, 0, W, HH); g.addColorStop(0, '#3d25b5'); g.addColorStop(1, '#7c5cff');
+    c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.lineTo(W, 0); c.lineTo(W, HH - 40); c.quadraticCurveTo(W / 2, HH + 30, 0, HH - 40); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.08)'; c.beginPath(); c.arc(W - 90, 60, 190, 0, 7); c.fill(); c.beginPath(); c.arc(70, HH - 70, 120, 0, 7); c.fill();
+    c.fillStyle = '#fff'; c.textBaseline = 'alphabetic';
+    c.font = `800 30px ${F}`; c.globalAlpha = .8; c.fillText('АЕГИС · ИТОГИ МЕСЯЦА' + (np > 1 ? ' · ' + (pi + 1) + ' из ' + np : ''), P, 78); c.globalAlpha = 1;
+    const showMedal = d.medal && d.who !== 'office';
+    c.fillStyle = '#fff'; fitText(c, d.name, showMedal ? 620 : W - 2 * P, 62, 800); c.fillText(d.name, P, 156);
+    c.font = `500 27px ${F}`; c.globalAlpha = .9; c.fillText(d.label + (d.cur ? ' · по состоянию на ' + (d.asof ? fmtDay(d.asof) : 'сегодня') : ' · итоги закрытого месяца'), P, 200); c.globalAlpha = 1;
+    const chips = [[(d.cur ? d.track : d.done) + ' из ' + d.rows.length, d.cur ? 'планов в графике' : 'планов выполнено']]; if (d.score != null) chips.push([nf(d.score * 100, 0) + ' %', d.cur ? 'балл по прогнозу' : 'общий балл']);
+    let cx = P;
+    for (const [n, l] of chips) { c.font = `800 34px ${F}`; const w1 = c.measureText(String(n)).width; c.font = `500 25px ${F}`; const w2 = c.measureText(l).width, cw = w1 + w2 + 56;
+        c.fillStyle = 'rgba(255,255,255,.18)'; rrect(c, cx, 232, cw, 60, 30); c.fill(); c.fillStyle = '#fff'; c.font = `800 34px ${F}`; c.fillText(String(n), cx + 22, 273); c.font = `500 25px ${F}`; c.fillText(l, cx + 34 + w1, 273); cx += cw + 14; }
+    if (showMedal) { const im = await loadMedal(); if (im) { const mh = 340, mw = im.width / im.height * mh; c.save(); c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 24; c.shadowOffsetY = 10; c.drawImage(im, W - P - mw + 10, 24, mw, mh); c.restore(); } }
+    let y = HH + 10;
+    if (pi === 0) {
+        const ok = d.who === 'office' ? d.done === d.rows.length : d.medal;
+        c.fillStyle = ok ? '#d9f4e4' : '#ffffff'; rrect(c, P, y, W - 2 * P, 80, 24); c.fill();
+        c.fillStyle = ok ? '#117a3d' : '#2a2550'; c.font = `800 30px ${F}`;
+        c.fillText(ok ? 'Все планы выполнены! Отличная работа!' : d.cur ? `Закрыто планов: ${d.done} из ${d.rows.length} · в графике: ${d.track}` : `Выполнено планов: ${d.done} из ${d.rows.length}`, P + 26, y + 50);
+        y += BN;
+    }
+    y += 14;
+    for (const r of shown) {
+        c.fillStyle = '#ffffff'; c.shadowColor = 'rgba(60,40,140,.10)'; c.shadowBlur = 16; c.shadowOffsetY = 4; rrect(c, P, y, W - 2 * P, RH, 26); c.fill(); c.shadowColor = 'transparent';
+        const ix = P + 28, iw = W - 2 * P - 56, col = pctCol(r.fc != null ? r.fc : r.r);
+        c.fillStyle = '#1c1740'; fitText(c, r.n, 560, 34, 800); c.fillText(r.n, ix, y + 50);
+        c.fillStyle = '#7a7596'; c.font = `500 23px ${F}`; c.fillText(`факт ${val(r.f, r.u, r.d)} из ${val(r.p, r.u, r.d)} ${r.u}`, ix, y + 88);
+        c.textAlign = 'right'; c.fillStyle = col; c.font = `800 54px ${F}`; c.fillText(nf(r.r * 100, 0) + ' %', ix + iw, y + 62);
+        if (r.fc != null && r.r < 1) { c.fillStyle = '#7a7596'; c.font = `500 22px ${F}`; c.fillText('прогноз ' + nf(r.fc * 100, 0) + ' %', ix + iw, y + 94); }
+        else if (r.r >= 1) { c.fillStyle = '#16a34a'; c.font = `700 22px ${F}`; c.fillText('✓ план выполнен', ix + iw, y + 94); }
+        c.textAlign = 'left';
+        const by = y + RH - 14; c.fillStyle = '#ebe8f7'; rrect(c, ix, by, iw, 7, 3.5); c.fill();
+        c.fillStyle = col; rrect(c, ix, by, Math.max(7, Math.min(1, r.r) * iw), 7, 3.5); c.fill();
+        y += RH + G;
+    }
+    if (last && d.rank.length) {
+        c.fillStyle = '#1c1740'; c.font = `800 34px ${F}`; c.fillText('Лидеры месяца', P, y + 50); y += 70;
+        const im = await loadMedal();
+        d.rank.slice(0, 3).forEach((x, k) => {
+            c.fillStyle = '#ffffff'; rrect(c, P, y, W - 2 * P, 72, 22); c.fill();
+            c.fillStyle = '#5a3fd8'; c.font = `800 34px ${F}`; c.fillText(String(k + 1), P + 28, y + 48);
+            c.fillStyle = '#1c1740'; fitText(c, x.name, 560, 32, 700); c.fillText(x.name, P + 80, y + 47);
+            if (x.ok && im) { const mh = 52, mw = im.width / im.height * mh; c.drawImage(im, W - P - 220 - mw, y + 10, mw, mh); }
+            c.textAlign = 'right'; c.fillStyle = pctCol(x.s); c.font = `800 38px ${F}`; c.fillText(nf(x.s * 100, 0) + ' %', W - P - 28, y + 49); c.textAlign = 'left';
+            y += 84;
+        });
+    }
+    c.fillStyle = '#7a7596'; c.font = `500 22px ${F}`; c.textAlign = 'center';
+    c.fillText('Процент = факт от плана · цвет и балл учитывает прогноз до конца месяца', W / 2, H - 70);
+    c.fillText('Сформировано в «Аегис» · ' + new Date().toLocaleDateString('ru-RU'), W / 2, H - 36); c.textAlign = 'left';
+    cv.__parts = np;
+    return cv;
+}
+function vDayPlan() {
     const rem = Math.max(1, S.month - S.passed), shift = S.emps.filter(e => hasData(e) && S.shifts[e.tn] !== false);
     const nS = Math.max(1, shift.length), toMon = Math.min(nextMonday(), rem), tgt = S.target;
     const me = S.emps.find(e => e.tn === S.me) || S.emps[0];
