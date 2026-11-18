@@ -186,7 +186,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 27;
+const APP_VERSION = 32;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -314,7 +314,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && NOT
     setSeen(NOTE);
     NOTE = 0;
 } });
-const SHARED = ['passed', 'month', 'asof', 'target', 'targets', 'cap', 't1', 't2', 't3', 'officeM', 'officeB', 'emps', 'shifts', 'man', 'importedRows', 'upd', 'agg', 'pins', 'history', 'staleDays', 'staleAll', 'custom'];
+const SHARED = ['passed', 'month', 'asof', 'target', 'targets', 'cap', 't1', 't2', 't3', 'officeM', 'officeB', 'emps', 'shifts', 'man', 'importedRows', 'upd', 'agg', 'pins', 'history', 'staleDays', 'staleAll', 'custom', 'offDays', 'offDaysM'];
 const sharedState = () => { const st = {}; for (const k of SHARED)
     st[k] = S[k]; return st; };
 let saveErr = false;
@@ -946,7 +946,9 @@ const pc = v => nf(v * 100, 1) + ' %';
 const totalHours = () => S.emps.reduce((a, e) => a + e.hours, 0);
 const hasData = e => !e.name.startsWith('—') && !e.nodata;
 function planOf(e, kind, i) { const o = (kind === 'm' ? S.officeM : S.officeB)[i]; const th = totalHours(); return th ? Math.round(e.hours / th * o) : 0; }
-function fcOf(f) { return S.passed ? f / S.passed * S.month : 0; }
+const offList = () => (S.offDaysM === monthKey() && Array.isArray(S.offDays)) ? S.offDays.filter(d => d >= 1 && d <= S.month) : [];
+const fcK = () => { const off = offList(), offP = off.filter(d => d <= S.passed).length, p = S.passed - offP, m = S.month - off.length; return p > 0 && m > 0 ? m / p : S.month / (S.passed || 1); };
+function fcOf(f) { return S.passed ? f * fcK() : 0; }
 const tgtOf = (k, i) => S.targets[k + '.' + i] != null ? S.targets[k + '.' + i] : S.target;
 function frOf(e, kind, i) { const m = S.man[e.tn + '.' + kind + '.' + i]; if (m != null)
     return m / 100; const p = planOf(e, kind, i); return p ? e[kind][i] / p : 0; }
@@ -964,9 +966,9 @@ function effRatios(e) {
     const r = [];
     for (let i = 0; i < 9; i++) {
         const p = planOf(e, 'm', i);
-        r.push(frOf(e, 'm', i) * S.month / (S.passed || 1));
+        r.push(frOf(e, 'm', i) * fcK());
     }
-    r.push(frOf(e, 'b', 0) * S.month / (S.passed || 1));
+    r.push(frOf(e, 'b', 0) * fcK());
     return r;
 }
 const EFF_N = [...MAIN.map(m => m.n), 'Телефоны'];
@@ -1007,7 +1009,7 @@ function customBlock() {
 function vGoals() {
     const t = goalOrder().map(i => {
         const m = MAIN[i];
-        const { plan, fact, fr } = scope('m', i), r = fr * S.month / (S.passed || 1), fc = plan * r, lv = level(r);
+        const { plan, fact, fr } = scope('m', i), r = fr * fcK(), fc = plan * r, lv = level(r);
         return `<div class="tile ${lv}" data-i="${i}"><span class="grip" data-grip="${i}" aria-label="Перетащить блок «${m.n}»" role="button">${GRIP}</span><h3 style="color:var(--ink)">${m.n}</h3>
      <div class="pair big" style="margin-top:12px"><span>${pc(r)}</span><span class="lbl">прогноз</span></div>
      <div class="sub">${val(fc, m.u, m.d)} ${m.u}</div>
@@ -1088,7 +1090,7 @@ function initDrag() {
 }
 function vBrand() {
     return DATA.brand.names.map((n, i) => {
-        const { plan, fact, fr } = scope('b', i), u = BR[i].u, r = fr * S.month / (S.passed || 1), lv = level(r);
+        const { plan, fact, fr } = scope('b', i), u = BR[i].u, r = fr * fcK(), lv = level(r);
         return `<div class="card"><h3>${n}</h3>
      <div class="cols"><div><div class="f">План</div><div class="v">${val(plan, u)}<small>${u}</small></div></div><div></div>
      <div><div class="f">Факт</div><div class="v">${val(fact, u)}<small>${u}</small></div></div>
@@ -1113,9 +1115,16 @@ function vDet() {
    <div class="sect">Рейтинг по темпу месяца</div><div class="list">${rows}${nodata}</div>
    <p class="hint">Балл = средний % плана по 10 показателям (потолок ${nf(S.cap * 100, 0)} % на показатель). План офиса делится по часам. Решение о замене остаётся за руководителем: рейтинг не учитывает стаж, обучение и причины низких продаж. ШПД, Апельсин: малый план, одна продажа сильно двигает %.</p>`;
 }
+function linPlan(goal, fact, toMon, nS, u) {
+    const q = u === 'УП' ? 10 : 1, R = v => Math.round(v * q) / q;
+    const rem = Math.max(1, S.month - S.passed), left = Math.max(0, goal - fact), D = Math.min(S.month, S.passed + toMon);
+    const need = Math.min(R(left), Math.max(0, R(goal * D / S.month - fact)));
+    const day = left <= 0 ? 0 : Math.max(R(need / toMon), R(left / rem));
+    return { need, day, per: R(day / nS), needP: R(need / nS), left };
+}
 function nextMonday() { const d = new Date(); const add = (8 - d.getDay()) % 7 || 7; return add; }
 function whatToSell(e) {
-    const k = S.month / (S.passed || 1), out = [];
+    const k = fcK(), out = [];
     for (let j = 0; j < 10; j++) {
         const kind = j < 9 ? 'm' : 'b', i = j < 9 ? j : 0, p = planOf(e, kind, i);
         if (!p || S.man[e.tn + '.' + kind + '.' + i] != null)
@@ -1130,13 +1139,13 @@ function whatToSell(e) {
 function sellHint(e) {
     if (!e || !hasData(e))
         return '';
-    const head = '<div class="sect">Что продать, чтобы выйти на цель</div>', L = whatToSell(e), rem = Math.max(1, S.month - S.passed);
+    const head = '<div class="sect">Что продать, чтобы выйти на цель</div>', L = whatToSell(e), toMon = Math.min(nextMonday(), Math.max(1, S.month - S.passed));
     if (!L.length)
         return head + '<div class="card"><div><b class="good">По темпу всё в порядке.</b> Каждый показатель идёт к своей цели.</div><p class="muted" style="margin:0">Сколько продавать каждый день, видно ниже в плане на день.</p></div>';
     const up = x => x.u === 'УП' ? Math.ceil(x.gap * 10) / 10 : x.name === 'ШПД' ? Math.ceil(x.gap * 2) / 2 : Math.ceil(x.gap);
     const rows = L.slice(0, 3).map((x, n) => {
         const left = Math.max(0, x.t * x.p - x.f);
-        return `<div class="drow"><span class="nm">${n === 0 ? 'Начните с: ' : ''}${x.name}</span><b>не хватает ${nf(up(x), 1)} ${x.u}</b><span class="muted">до цели месяца ещё ${nf(left, x.u === 'УП' ? 1 : 0)} ${x.u}, это ≈ ${nf(Math.ceil(left / rem * (x.u === 'УП' ? 10 : 1)) / (x.u === 'УП' ? 10 : 1), x.u === 'УП' ? 1 : 0)} в день</span><span class="good">+${nf(x.gain * 100, 1)} % к баллу</span></div>`;
+        return `<div class="drow"><span class="nm">${n === 0 ? 'Начните с: ' : ''}${x.name}</span><b>не хватает ${nf(up(x), 1)} ${x.u}</b><span class="muted">до цели месяца ещё ${nf(left, x.u === 'УП' ? 1 : 0)} ${x.u}, это ≈ ${nf(linPlan(x.t * x.p, x.f, toMon, 1, x.u).day, x.u === 'УП' ? 1 : 0)} в день</span><span class="good">+${nf(x.gain * 100, 1)} % к баллу</span></div>`;
     }).join('');
     const base = effScore(e) * 100, tot = L.reduce((a, x) => a + x.gain, 0) * 100;
     return head + `<div class="card" style="gap:12px">${rows}<p class="muted" style="margin:0">Это отставание от темпа на сегодня: продайте столько, и показатель выходит на цель по темпу. Если закрыть все отставания, балл вырастет с ${nf(base, 0)} % до ${nf(base + tot, 0)} %.${L.length > 3 ? ' Показаны 3 самых выгодных из ' + L.length + '.' : ''}</p></div>`;
@@ -1178,9 +1187,8 @@ async function buildDayImage(who, opt) {
         const plan = isOff ? (x.k === 'm' ? S.officeM : S.officeB)[x.i] : planOf(e, x.k, x.i);
         if (!plan) continue;
         const fact = isOff ? S.emps.reduce((a, q) => a + q[x.k][x.i], 0) : e[x.k][x.i];
-        const t = tgtOf(x.k, x.i), goal = t * plan, left = Math.max(0, goal - fact), day = Math.ceil(left / rem);
-        const need = Math.ceil(left / rem * toMon);
-        rows.push({ x, plan, fact, t, goal, left, day, per: Math.ceil(day / nS), need, needP: Math.ceil(need / nS), done: left <= 0 });
+        const t = tgtOf(x.k, x.i), goal = t * plan, lp = linPlan(goal, fact, toMon, isOff ? nS : 1, x.u), left = lp.left, day = lp.day, need = lp.need;
+        rows.push({ x, plan, fact, t, goal, left, day, per: lp.per, need, needP: lp.needP, done: left <= 0 });
     }
     let chunks = [rows];
     if (opt && opt.paged) { chunks = []; let cur = [], hh0 = 0; for (const r of rows) { const hh = (r.done ? 112 : 176) + 14; if (cur.length && hh0 + hh > 1250) { chunks.push(cur); cur = []; hh0 = 0; } cur.push(r); hh0 += hh; } if (cur.length) chunks.push(cur); if (!chunks.length) chunks = [[]]; }
@@ -1413,7 +1421,7 @@ function vDayPlan() {
         const o = (x.k === 'm' ? S.officeM : S.officeB)[x.i];
         if (!o)
             return '';
-        const fact = S.emps.reduce((a, e) => a + e[x.k][x.i], 0), t = tgtOf(x.k, x.i), left = Math.max(0, t * o - fact), day = Math.ceil(left / rem), per = Math.ceil(day / nS), need = Math.ceil(left / rem * toMon), needP = Math.ceil(need / nS);
+        const fact = S.emps.reduce((a, e) => a + e[x.k][x.i], 0), t = tgtOf(x.k, x.i), lp = linPlan(t * o, fact, toMon, nS, x.u), left = lp.left, day = lp.day, per = lp.per, need = lp.need, needP = lp.needP;
         return `<tr class="nm"><td colspan="5">${x.n}<span class="muted">цель ${nf(t * 100, 0)} %</span></td></tr><tr><td>${val(left, x.u, x.d)}</td><td>${val(day, x.u)}</td><td>${val(per, x.u)}</td><td>${val(need, x.u)}</td><td>${val(needP, x.u)}</td></tr>`;
     }).join('');
     const mine = !me ? '<p class="muted">Вас нет в списке сотрудников с данными, поэтому личный план не показывается. План для офиса смотрите ниже.</p>' :
@@ -1421,8 +1429,8 @@ function vDayPlan() {
             const p = planOf(me, x.k, x.i);
             if (!p)
                 return '';
-            const t = tgtOf(x.k, x.i), fact = me[x.k][x.i], left = Math.max(0, t * p - fact);
-            return `<div class="drow"><span class="nm">${x.n}</span><b>${val(Math.ceil(left / rem), x.u)} ${x.u}</b><span class="muted">цель ${nf(t * 100, 0)} %: осталось ${val(left, x.u, x.d)} из ${val(t * p, x.u, x.d)}</span><span></span></div>`;
+            const t = tgtOf(x.k, x.i), fact = me[x.k][x.i], lp = linPlan(t * p, fact, toMon, 1, x.u), left = lp.left;
+            return `<div class="drow"><span class="nm">${x.n}</span><b>${val(lp.day, x.u)} ${x.u}</b><span class="muted">цель ${nf(t * 100, 0)} %: осталось ${val(left, x.u, x.d)} из ${val(t * p, x.u, x.d)}${left > 0 ? ', до пн ' + val(lp.need, x.u) : ''}</span><span></span></div>`;
         }).join('');
     return `<div class="stats"><div class="stat"><b>${rem}</b><span>дней осталось</span></div><div class="stat"><b>${shift.length}</b><span>в смене</span></div>
    <div class="stat"><b>${toMon}</b><span>дней продаж до понедельника</span></div><div class="stat"><b>${nf(tgt * 100, 0)} %</b><span>цель по умолчанию</span></div></div>
@@ -1430,7 +1438,7 @@ function vDayPlan() {
    ${lockTn() ? '' : `<div class="sect">Кто в смене</div><div class="list">${shiftRows}</div>`}
    ${me ? '<div class="sect">Мой план на день</div>' : ''}<div class="card" style="gap:12px">${mine}</div>
    ${`<div class="sect">По офису</div><div class="card fitc"><div class="scroll"><table class="tbl fit"><thead><tr><th>До цели</th><th>В день</th><th>На чел.</th><th>До пн</th><th>До пн на чел.</th></tr></thead><tbody>${off}</tbody></table></div></div>`}
-   <p class="hint">План на день = остаток ÷ оставшиеся дни. «До пн» = сколько продать до понедельника, чтобы по темпу выйти на цель по этому показателю (цели задаются во вкладке «Ввод»). План на день считается до цели, а не до 100 %.</p>`;
+   <p class="hint">План на день: по линейному темпу берём норму на конец воскресенья (план ÷ дни месяца × номер дня), вычитаем факт и делим на дни до понедельника. «До пн» = сколько продать до понедельника, чтобы по темпу выйти на цель по этому показателю (цели задаются во вкладке «Ввод»). План на день считается до цели, а не до 100 %.</p>`;
 }
 function snapVals(h, who) {
     const th = h.th || h.emps.reduce((a, e) => a + e.hours, 0) || 1, plan = (e, o) => Math.round(e.hours / th * o);
@@ -1554,6 +1562,7 @@ function vSet() {
    <div class="sect">Цель по каждому показателю, % плана</div><p class="hint">Например СУП 100, ФВ 110, Huawei 150. Пустое поле = цель по умолчанию (${nf(S.target * 100, 0)} %).</p>
    <div class="list">${[...MAIN.map(m => m.n), ...DATA.brand.names].map((n, j) => { const k = j < 9 ? 'm' : 'b', i = j < 9 ? j : j - 9, key = k + '.' + i; return `<div class="field"><span>${n}</span><input type="number" inputmode="decimal" step="any" data-path="tg.${key}" value="${S.targets[key] == null ? '' : Math.round(S.targets[key] * 100)}" placeholder="${nf(S.target * 100, 0)}" aria-label="Цель ${n}"></div>`; }).join('')}</div>
    <div class="sect">План офиса</div><div class="list">${MAIN.map((m, i) => `<div class="field"><span>${m.n}</span>${num('officeM.' + i, S.officeM[i])}</div>`).join('')}${DATA.brand.names.map((n, i) => `<div class="field"><span>${n}</span>${num('officeB.' + i, S.officeB[i])}</div>`).join('')}</div>
+   <div class="sect">Прогноз</div><p class="hint">Прогноз = факт ÷ прошедшие дни × дни месяца. Если офис не работал в какие-то дни, впишите эти числа месяца через запятую (например 14, 15): они не считаются ни в прошедших, ни во всех днях месяца, как в ЦПУ. Сейчас в расчёте: прошло ${S.passed - offList().filter(d => d <= S.passed).length} из ${S.month - offList().length}.</p><div class="list"><div class="field"><span>Нерабочие дни офиса</span><input type="text" inputmode="numeric" data-path="offDays" value="${offList().join(', ')}" placeholder="например 14, 15" aria-label="Нерабочие дни офиса"></div></div>
    <div class="sect">Рейтинг</div><div class="list"><div class="field"><span>Потолок % на показатель</span>${num('capPct', Math.round(S.cap * 100), 1)}</div>
    <div class="field"><span>«Молодец» от, %</span>${num('t1p', Math.round(S.t1 * 100), 1)}</div><div class="field"><span>«Хорошо» от, %</span>${num('t2p', Math.round(S.t2 * 100), 1)}</div><div class="field"><span>«Есть куда расти» от, % (ниже: «Позор офиса»)</span>${num('t3p', Math.round(S.t3 * 100), 1)}</div></div>
    ${manSec()}
@@ -1911,6 +1920,13 @@ document.addEventListener('change', ev => {
                 c.by = t.value === 'sum' ? 'sum' : 'qty';
             recalcCustom();
         }
+        save();
+        render();
+        return;
+    }
+    if (p === 'offDays') {
+        S.offDays = [...new Set(String(t.value).split(/[^0-9]+/).map(Number).filter(d => d >= 1 && d <= 31))].sort((a, b) => a - b);
+        S.offDaysM = monthKey();
         save();
         render();
         return;
