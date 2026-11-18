@@ -186,7 +186,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 26;
+const APP_VERSION = 27;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -1406,7 +1406,7 @@ async function buildMonthImage(opt) {
 function vDayPlan() {
     const rem = Math.max(1, S.month - S.passed), shift = S.emps.filter(e => hasData(e) && S.shifts[e.tn] !== false);
     const nS = Math.max(1, shift.length), toMon = Math.min(nextMonday(), rem), tgt = S.target;
-    const me = S.emps.find(e => e.tn === S.me) || S.emps[0];
+    const me = S.emps.find(e => e.tn === S.me && hasData(e)) || null;
     const shiftRows = S.emps.filter(hasData).map(e => `<div class="switch"><span>${e.name}</span><button class="tog" data-a="shift" data-v="${e.tn}" aria-pressed="${S.shifts[e.tn] !== false}" aria-label="В смене: ${e.name}"></button></div>`).join('');
     const all = [...MAIN.map((m, i) => ({ n: m.n, u: m.u, k: 'm', i, d: m.d })), ...DATA.brand.names.map((n, i) => ({ n, u: BR[i].u, k: 'b', i }))];
     const off = all.map(x => {
@@ -1416,8 +1416,8 @@ function vDayPlan() {
         const fact = S.emps.reduce((a, e) => a + e[x.k][x.i], 0), t = tgtOf(x.k, x.i), left = Math.max(0, t * o - fact), day = Math.ceil(left / rem), per = Math.ceil(day / nS), need = Math.ceil(left / rem * toMon), needP = Math.ceil(need / nS);
         return `<tr class="nm"><td colspan="5">${x.n}<span class="muted">цель ${nf(t * 100, 0)} %</span></td></tr><tr><td>${val(left, x.u, x.d)}</td><td>${val(day, x.u)}</td><td>${val(per, x.u)}</td><td>${val(need, x.u)}</td><td>${val(needP, x.u)}</td></tr>`;
     }).join('');
-    const mine = S.shifts[me.tn] === false ? '<p class="muted">Вы отмечены «не в смене», план на день не считается.</p>' :
-        all.map(x => {
+    const mine = !me ? '<p class="muted">Вас нет в списке сотрудников с данными, поэтому личный план не показывается. План для офиса смотрите ниже.</p>' :
+        (S.shifts[me.tn] === false ? '<p class="muted" style="margin:0 0 4px">Вы отмечены «не в смене»: на плане офиса «на человека» вас не учитываем, ваш личный план считается как обычно.</p>' : '') + all.map(x => {
             const p = planOf(me, x.k, x.i);
             if (!p)
                 return '';
@@ -1426,9 +1426,9 @@ function vDayPlan() {
         }).join('');
     return `<div class="stats"><div class="stat"><b>${rem}</b><span>дней осталось</span></div><div class="stat"><b>${shift.length}</b><span>в смене</span></div>
    <div class="stat"><b>${toMon}</b><span>дней продаж до понедельника</span></div><div class="stat"><b>${nf(tgt * 100, 0)} %</b><span>цель по умолчанию</span></div></div>
-   ${medalCard(me)}${sellHint(me)}${dayImgBar()}
+   ${me ? medalCard(me) + sellHint(me) : ''}${dayImgBar()}
    ${lockTn() ? '' : `<div class="sect">Кто в смене</div><div class="list">${shiftRows}</div>`}
-   <div class="sect">Мой план на день</div><div class="card" style="gap:12px">${mine}</div>
+   ${me ? '<div class="sect">Мой план на день</div>' : ''}<div class="card" style="gap:12px">${mine}</div>
    ${`<div class="sect">По офису</div><div class="card fitc"><div class="scroll"><table class="tbl fit"><thead><tr><th>До цели</th><th>В день</th><th>На чел.</th><th>До пн</th><th>До пн на чел.</th></tr></thead><tbody>${off}</tbody></table></div></div>`}
    <p class="hint">План на день = остаток ÷ оставшиеся дни. «До пн» = сколько продать до понедельника, чтобы по темпу выйти на цель по этому показателю (цели задаются во вкладке «Ввод»). План на день считается до цели, а не до 100 %.</p>`;
 }
