@@ -186,7 +186,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 24;
+const APP_VERSION = 25;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -1556,10 +1556,13 @@ function gateView() {
     document.getElementById('view').innerHTML = `<div class="sect">Подключение к данным</div><div class="card"><p class="muted" style="margin:0">На этом устройстве пока нет данных: сотрудники, планы и продажи приходят только с сервера. Впишите код офиса, который выдал руководитель, и нажмите «Забрать данные». Потом введёте табельный номер и ПИН.</p></div>` + syCard();
 }
 function render() {
-    if (!S.emps.length && !needLogin()) {
+    const EMPTYADM = !S.emps.length && syOn() && !!SY.pw;
+    if (!S.emps.length && !needLogin() && !EMPTYADM) {
         gateView();
         return;
     }
+    if (EMPTYADM)
+        tab = 'set';
     if (needLogin()) {
         document.body.classList.add('viewer');
         document.getElementById('title').textContent = 'Вход';
@@ -1585,7 +1588,7 @@ function render() {
     document.getElementById('updbar').innerHTML = noteBar() + staleBar() + updBanner();
     document.getElementById('ctrl').innerHTML = (tab === 'goals' || tab === 'brand') ? scopeSeg() : '';
     document.getElementById('view').innerHTML = { goals: vGoals, brand: vBrand, det: vDet, day: vDay, hist: vHist, set: vSet }[tab]();
-    document.getElementById('tabs').innerHTML = TABS.filter(t => !(LK && t[0] === 'det')).map(([k, n]) => `<button data-a="tab" data-v="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ICON[k]}<span>${n}</span></button>`).join('');
+    document.getElementById('tabs').innerHTML = EMPTYADM ? '' : TABS.filter(t => !(LK && t[0] === 'det')).map(([k, n]) => `<button data-a="tab" data-v="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ICON[k]}<span>${n}</span></button>`).join('');
 }
 document.addEventListener('click', ev => {
     const b = ev.target.closest('[data-a]');
