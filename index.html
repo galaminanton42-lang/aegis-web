@@ -186,7 +186,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 25;
+const APP_VERSION = 26;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -464,6 +464,7 @@ function pull(silent) {
         softRender();
     } });
 }
+let PUSHOK = false, wipeArm = 0;
 function push(force) {
     if (!(syOn() && SY.pw))
         return;
@@ -474,6 +475,18 @@ function push(force) {
     }
     if (!S.emps.length)
         return;
+    let tagged = true;
+    try { tagged = !!localStorage.getItem('cpu2-oc'); } catch (e) { }
+    if (!tagged && !PUSHOK) {
+        if (force) {
+            PUSHOK = true;
+            syMsg = 'Внимание: на этом телефоне уже есть данные, и неизвестно, из какого они офиса. Если это данные другого офиса, не отправляйте их сюда: нажмите «Очистить данные телефона». Если данные этого офиса, нажмите «Отправить данные» ещё раз.';
+        }
+        else
+            syMsg = 'Данные не отправлены: на телефоне уже есть данные неизвестного офиса. Откройте «Синхронизация» и подтвердите отправку.';
+        softRender();
+        return;
+    }
     const body = JSON.stringify({ k: SY.key, pw: SY.pw, state: sharedState() });
     if (!force && body === lastSent)
         return;
@@ -535,7 +548,7 @@ function syCard() {
   ${DEFAULT_SY.url ? '' : `<input id="syUrl" type="url" placeholder="Ссылка на скрипт (…/exec)" value="${esc(SY.url)}" aria-label="Ссылка на скрипт">`}
   <input id="syKey" type="text" placeholder="Код офиса (например 7A79000)" value="${esc(SY.key)}" maxlength="16" autocapitalize="characters" autocomplete="off" aria-label="Код офиса">
   <input id="syPw" type="password" placeholder="Пароль администратора (только у вас)" value="${esc(SY.pw)}" aria-label="Пароль администратора">
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-a="pull">Забрать данные</button>${SY.pw ? '<button class="btn ghost" data-a="push">Отправить данные</button>' : ''}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-a="pull">Забрать данные</button>${SY.pw ? '<button class="btn ghost" data-a="push">Отправить данные</button>' : ''}${SY.pw && S.emps.length ? '<button class="btn ghost" data-a="wipeLocal">Очистить данные телефона</button>' : ''}</div>
   <div class="muted" role="status">${syMsg || (syOn() ? (SY.pw ? 'Режим администратора: изменения уходят на сервер сами.' : 'Режим просмотра: данные подтягиваются сами каждую минуту.') : 'Введите код офиса.')}</div></div>`;
 }
 let tab = 'goals', openEmp = null, editOrder = false, addMsg = '', delArm = null;
@@ -1806,6 +1819,10 @@ document.addEventListener('click', ev => {
     else if (a === 'pull') {
         pull(false);
         return;
+    }
+    else if (a === 'wipeLocal') {
+        if (wipeArm !== 1) { wipeArm = 1; syMsg = 'С телефона удалятся сотрудники, цели и отчёт (на сервере ничего не меняется). Нажмите «Очистить данные телефона» ещё раз для подтверждения.'; }
+        else { wipeArm = 0; resetForOffice(); setOfficeTag(); PUSHOK = false; syMsg = 'Данные телефона очищены. Нажмите «Забрать данные» или загрузите отчёт этого офиса.'; save(); }
     }
     else if (a === 'push') {
         push(true);
