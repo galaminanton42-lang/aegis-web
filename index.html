@@ -186,7 +186,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 32;
+const APP_VERSION = 33;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -381,6 +381,8 @@ function pull(silent) {
     else if (LOGIN && LOGIN.tn) {
         req.tn = LOGIN.tn;
         req.pin = LOGIN.pin;
+        if (!LOGIN.srv)
+            req.first = true;
     }
     fetch(SY.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(req) }).then(r => r.json()).then(j => {
         if (!j.ok && j.error === 'login') {
@@ -417,6 +419,7 @@ function pull(silent) {
             return;
         }
         SRVLOCK = false;
+        if (j.act && SY.pw) { ACT = j.act; ACTAT = Date.now(); }
         if (j.strict && !SY.pw && S.pins)
             delete S.pins;
         if (LOGIN && LOGIN.tn && !SY.pw && !LOGIN.srv) {
@@ -526,6 +529,40 @@ function updCard() {
 function logoutCard() {
     const e = S.emps.find(x => x.tn === LOGIN.tn);
     return `<div class="sect">Аккаунт</div><div class="card"><div>Вы вошли как <b>${esc(e ? e.name : LOGIN.tn)}</b></div><button class="btn ghost" data-a="logout">Выйти</button></div><p class="hint">Режим просмотра: планы и данные задаёт администратор, они подтягиваются сами.</p>`;
+}
+let ACT = null, ACTAT = 0, actBusy = false;
+function actPull() {
+    if (!syOn() || !SY.pw || actBusy)
+        return;
+    actBusy = true;
+    fetch(SY.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'get', k: SY.key, pw: SY.pw }) }).then(r => r.json()).then(j => {
+        actBusy = false;
+        if (j && j.ok && j.act) { ACT = j.act; ACTAT = Date.now(); softRender(); }
+    }).catch(() => { actBusy = false; });
+}
+setInterval(() => { if (!document.hidden && tab === 'det' && SY.pw && syOn())
+    actPull(); }, 60000);
+function actCard() {
+    if (!(IS_APP && SY.pw && syOn()))
+        return '';
+    if (!ACT && !actBusy)
+        setTimeout(actPull, 0);
+    const act = ACT || {};
+    const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    const dayDiff = ts => { const d = new Date(ts); d.setHours(0, 0, 0, 0); return Math.round((t0 - d) / 86400000); };
+    const hm = ts => new Date(ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    const when = ts => { if (!ts) return 'не заходил'; const n = dayDiff(ts); return (n <= 0 ? 'сегодня' : n === 1 ? 'вчера' : new Date(ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })) + ', ' + hm(ts); };
+    const rows = S.emps.filter(hasData).map(e => {
+        const r = act[e.tn] || [0, 0];
+        const last = Math.max(r[0] || 0, r[1] || 0);
+        const n = last ? dayDiff(last) : 99;
+        return { e, r, last, c: n <= 0 ? 'g' : n <= 2 ? 'y' : 'r' };
+    }).sort((a, b) => b.last - a.last);
+    const cnt = { g: 0, y: 0, r: 0 };
+    rows.forEach(x => cnt[x.c]++);
+    const dot = { g: '🟢', y: '🟡', r: '🔴' };
+    const list = rows.map(x => `<div class="field"><span>${dot[x.c]} ${esc(x.e.name)}<br><span class="muted">вход: ${when(x.r[0])}<br>активность: ${when(x.r[1])}</span></span></div>`).join('');
+    return `<div class="sect">Активность сотрудников</div><div class="card"><div><b>Активны сегодня: ${cnt.g}</b> · не активны: ${cnt.y + cnt.r}</div><div class="muted" style="margin:4px 0 8px">🟢 ${cnt.g} сегодня · 🟡 ${cnt.y} вчера и позавчера · 🔴 ${cnt.r} раньше или не заходили</div><div class="list">${list || '<span class="muted">Нет сотрудников</span>'}</div><p class="muted" style="margin:8px 0 0">Обновляется раз в минуту. Фиксируются только телефоны, где сотрудник вошёл по ПИН.</p><button class="btn ghost" data-a="actRefresh">Обновить сейчас</button></div>`;
 }
 function pinCard() {
     if (!(IS_APP && SY.pw))
@@ -1112,7 +1149,7 @@ function vDet() {
     }).join('');
     const nodata = S.emps.filter(e => !hasData(e)).map(e => `<div class="row" style="cursor:default"><div class="n">${e.name}</div><span class="chip">нет данных</span><div class="muted">Проверьте смену: отпуск, больничный или поздний выход.</div></div>`).join('');
     return `<div class="stats"><div class="stat"><b>${nf(avg * 100, 0)} %</b><span>средний балл офиса</span></div><div class="stat"><b>${rk.length}</b><span>сотрудников с данными</span></div></div>
-   <div class="sect">Рейтинг по темпу месяца</div><div class="list">${rows}${nodata}</div>
+   ${actCard()}<div class="sect">Рейтинг по темпу месяца</div><div class="list">${rows}${nodata}</div>
    <p class="hint">Балл = средний % плана по 10 показателям (потолок ${nf(S.cap * 100, 0)} % на показатель). План офиса делится по часам. Решение о замене остаётся за руководителем: рейтинг не учитывает стаж, обучение и причины низких продаж. ШПД, Апельсин: малый план, одна продажа сильно двигает %.</p>`;
 }
 function linPlan(goal, fact, toMon, nS, u) {
@@ -1796,6 +1833,9 @@ document.addEventListener('click', ev => {
             recalcCustom();
             addMsg = x ? `Добавлен: ${x.name || tn}. ` + (h ? '' : 'Впишите ему часы ниже (раздел «Факт по сотрудникам»), иначе плана не будет.') : `Номер ${tn} добавлен, но в загруженной выгрузке продаж по нему нет. Проверьте номер или загрузите свежую выгрузку.`;
         }
+    }
+    else if (a === 'actRefresh') {
+        actPull();
     }
     else if (a === 'pinGen') {
         S.pins = S.pins || {};
