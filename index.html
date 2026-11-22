@@ -357,7 +357,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 47;
+const APP_VERSION = 48;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
