@@ -153,10 +153,60 @@ body.dragging{-webkit-user-select:none;user-select:none;overscroll-behavior:cont
 #brand{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;font-weight:600;min-width:0}
 #brand svg{width:20px;height:20px;color:var(--accent);flex:none}
 #brand span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#brand .sec{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;letter-spacing:.03em;overflow:visible}
+#brand .sec svg{width:13px;height:13px;color:inherit}
+#brand .nm{min-width:0}
+#brand .sec{cursor:pointer;border:0;font-family:inherit;transition:transform .15s cubic-bezier(.3,.7,.3,1),background-color .2s}
+#brand .sec:active{transform:scale(.94)}
+.pov{position:fixed;inset:0;z-index:150;background:rgba(10,12,24,.5);opacity:0;transition:opacity .3s ease;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.pn{position:fixed;left:0;right:0;bottom:0;z-index:151;max-height:84%;display:flex;flex-direction:column;background:var(--surface);color:var(--ink);border-radius:28px 28px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.25);transform:translateY(102%);transition:transform .45s cubic-bezier(.2,.8,.2,1);padding:10px 20px calc(18px + env(safe-area-inset-bottom,0px))}
+#pol.open .pov{opacity:1}
+#pol.open .pn{transform:none}
+.pn .grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px;flex:none}
+.pn h2{margin:0 0 4px;font-size:20px;letter-spacing:-.01em}
+.pn .pv{color:var(--muted);font-size:12px;margin-bottom:10px}
+.pn .pb{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:10px;padding-bottom:6px}
+.pn .pb::-webkit-scrollbar{display:none}
+.pn .pb p{margin:0}
+.pn .pb p b{display:block;color:var(--accent);font-size:13px;margin-bottom:1px}
+.pn .pact{display:flex;gap:10px;margin-top:12px;flex:none}
+.pn .pact .btn{flex:1}
+.pn .pact .btn.ghost{flex:.55}
+.polfoot{text-align:center;padding:22px 0 6px}
+.polfoot button{background:none;border:0;color:var(--muted);font:inherit;font-size:12px;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:999px;cursor:pointer;transition:background-color .2s,color .2s}
+.polfoot button svg{width:14px;height:14px}
+.polfoot button:active{background:var(--accent-soft);color:var(--accent)}
+#view{transition:filter .45s ease,opacity .45s ease}
+body.ndalock #view{filter:blur(16px) saturate(.7);opacity:.75;pointer-events:none;user-select:none;-webkit-user-select:none}
+#ndaov{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:var(--navh,84px);z-index:30;display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .35s ease both}
+#ndaov .ndac{width:100%;max-width:360px;background:var(--surface);border-radius:28px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:26px 22px 22px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+#ndaov .lg{width:56px;height:56px;border-radius:18px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+#ndaov .lg svg{width:28px;height:28px}
+#ndaov b{font-size:19px}
+#ndaov span.t{color:var(--muted);font-size:14px;line-height:1.4}
+#ndaov .btn{width:100%;margin-top:6px}
+.linkbtn{background:none;border:0;padding:6px 0;color:var(--accent);font:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer}
+.tile,.stat b,.badge,.v,.dr-v,.bv,.drow b{font-variant-numeric:tabular-nums}
 .brandcard{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 18px 6px}
 .brandcard .lg{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,#3d25b5,#7c5cff);color:#fff;display:grid;place-items:center;box-shadow:0 8px 22px rgba(92,64,220,.35)}
 .brandcard .lg svg{width:34px;height:34px}
 .brandcard b{font-size:22px}
+/* Вход: согласие о неразглашении и плашка защиты */
+.nda{display:flex;flex-direction:column;gap:10px}
+.ckrow{display:flex;gap:12px;align-items:flex-start;text-align:left;background:none;border:0;padding:0;color:var(--ink);font:inherit;font-size:14px;line-height:1.35;width:100%;cursor:pointer}
+.ckrow .ck{flex:none;width:24px;height:24px;border-radius:8px;background:var(--tile);display:grid;place-items:center;transition:background-color .25s ease,transform .2s cubic-bezier(.3,.7,.3,1);margin-top:1px}
+.ckrow .ck svg{width:16px;height:16px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:22;stroke-dashoffset:22;transition:stroke-dashoffset .3s ease .05s}
+.ckrow[aria-checked="true"] .ck{background:var(--accent)}
+.ckrow[aria-checked="true"] .ck svg{stroke-dashoffset:0}
+.ckrow:active .ck{transform:scale(.88)}
+.ndatxt{font-size:13px;line-height:1.45;color:var(--muted)}
+.ndatxt p{margin:0 0 8px}
+.ndatxt p:last-child{margin:0}
+.gated{opacity:.45;pointer-events:none;transition:opacity .3s ease}
+.gated.on{opacity:1;pointer-events:auto}
+.secbadge{display:flex;align-items:center;justify-content:center;gap:8px;margin:22px 0 6px;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.02em;opacity:.8;text-align:center}
+.secbadge svg{width:18px;height:18px;color:var(--accent);flex:none}
+.secbadge small{display:block;font-weight:500;opacity:.85;letter-spacing:0}
 #hello{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;background:linear-gradient(160deg,#2b1a8c,#5b3df0 55%,#7c5cff);color:#fff;animation:fadeIn .35s ease both;cursor:pointer}
 #hello.out{animation:helloOut .45s ease both}
 #hello .hs{display:flex;flex-direction:column;align-items:center;gap:14px;animation:rise .6s cubic-bezier(.2,.7,.2,1) .1s both}
@@ -357,7 +407,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 48;
+const APP_VERSION = 56;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -784,12 +834,86 @@ function pinCard() {
     const rows = S.emps.filter(hasData).map(e => `<div class="field"><span>${esc(e.name)}<br><span class="muted">${e.tn}</span></span><input type="text" inputmode="numeric" maxlength="8" data-path="pins.${e.tn}" value="${esc((S.pins || {})[e.tn] || '')}" placeholder="ПИН" aria-label="ПИН ${esc(e.name)}"></div>`).join('');
     return `<div class="sect">Вход сотрудников по ПИН-коду</div><div class="card"><p class="muted" style="margin:0">Когда задан хотя бы один ПИН, остальные телефоны (без пароля администратора) просят войти: табельный номер и ПИН, и показывают только данные этого сотрудника. Раздайте ПИН людям сами. Пустое поле = человек не сможет войти.</p><div class="list">${rows}</div><button class="btn ghost" data-a="pinGen">Создать недостающие ПИН</button><button class="btn ghost" data-a="pinClear">Отключить вход по ПИН для всех</button></div>`;
 }
+const NDA_V = 1;
+function ndaInfo() { try { const j = JSON.parse(PROT_GET('cpu2-nda') || 'null'); return j && j.v === NDA_V ? j : null; } catch (e) { return null; } }
+const POL_HTML = `
+    <p><b>Служебные данные</b>Показатели продаж, планы, рейтинг и сведения о сотрудниках офиса — служебная информация. Используйте её только для работы.</p>
+    <p><b>Неразглашение</b>Не передавайте данные из приложения посторонним, не публикуйте и не пересылайте скриншоты и отчёты за пределы офиса без разрешения руководителя.</p>
+    <p><b>Доступ</b>Входите только под своим табельным номером и ПИН-кодом и не сообщайте ПИН другим. Все действия выполняются от вашего имени.</p>
+    <p><b>Учёт входов</b>Приложение фиксирует время входа и последней активности сотрудника, чтобы администратор видел, кто работает с данными.</p>
+    <p><b>Защита</b>Данные передаются по защищённому соединению (HTTPS), вход защищён ПИН-кодом, в приложении доступна блокировка отпечатком или лицом.</p>
+    <p><b>Ответственность</b>Нарушение этих условий может повлечь меры по правилам работодателя.</p>`;
+let polAutoDone = false;
+const LOCKICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+function ndaApply(on) {
+    const vw = document.getElementById('view');
+    document.body.classList.toggle('ndalock', on);
+    if (vw) {
+        if (on)
+            vw.setAttribute('inert', '');
+        else
+            vw.removeAttribute('inert');
+    }
+    let ov = document.getElementById('ndaov');
+    if (on && !ov) {
+        ov = document.createElement('div');
+        ov.id = 'ndaov';
+        ov.innerHTML = `<div class="ndac"><div class="lg">${LOCKICO}</div><b>Данные скрыты</b><span class="t">Подтвердите согласие о неразглашении, чтобы увидеть показатели.</span><button class="btn" data-a="polOpen">Прочитать и принять</button></div>`;
+        document.body.appendChild(ov);
+        polAuto();
+    }
+    else if (!on && ov)
+        ov.remove();
+}
+function openPol() {
+    if (document.getElementById('pol'))
+        return;
+    const j = ndaInfo(), when = j ? new Date(j.t).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const el = document.createElement('div');
+    el.id = 'pol';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'Политика конфиденциальности');
+    el.innerHTML = `<div class="pov" data-a="polClose"></div><div class="pn"><div class="grab"></div><h2>Политика конфиденциальности</h2><div class="pv">${j ? 'Согласие дано ' + when : 'Прочитайте и подтвердите, чтобы продолжить'}</div><div class="pb">${POL_HTML}</div>
+    <div class="pact">${j ? '<button class="btn" data-a="polClose">Закрыть</button>' : '<button class="btn ghost" data-a="polClose">Позже</button><button class="btn" data-a="polAccept">Прочитал(а), принимаю</button>'}</div></div>`;
+    document.body.appendChild(el);
+    void el.offsetWidth;
+    el.classList.add('open');
+}
+function closePol() {
+    const el = document.getElementById('pol');
+    if (!el)
+        return;
+    el.classList.remove('open');
+    setTimeout(() => el.remove(), 480);
+}
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape')
+    closePol(); });
+function polAuto() {
+    if (polAutoDone || ndaInfo() || document.getElementById('pol'))
+        return;
+    polAutoDone = true;
+    setTimeout(openPol, 450);
+}
+function polFoot() {
+    return `<div class="polfoot"><button data-a="polOpen" aria-label="Политика конфиденциальности">${SHIELD}Политика конфиденциальности</button></div>`;
+}
+function ndaCard(ok) {
+    const j = ndaInfo(), when = j ? new Date(j.t).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    return `<div class="sect">Конфиденциальность</div><div class="card nda">
+  <button class="ckrow" role="checkbox" aria-checked="${ok}" data-a="ndaTog"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Я ознакомлен(а) с условиями и обязуюсь не разглашать данные офиса третьим лицам</span></button>
+  ${ok ? `<div class="muted" style="font-size:12px">Согласие дано ${when}</div>` : ''}
+  <button class="linkbtn" data-a="polOpen">Прочитать условия</button></div>`;
+}
 function loginView() {
-    return `<div class="brandcard"><div class="lg">${SHIELD}</div><b>${OFFNAME ? esc(OFFNAME) : 'Аегис'}</b><span class="muted">Войдите, чтобы продолжить</span></div><div class="sect">Вход</div><div class="card"><p class="muted" style="margin:0">Введите свой табельный номер и ПИН-код. ПИН выдаёт администратор.</p>
+    const ok = !!ndaInfo(), g = ok ? 'gated on' : 'gated';
+    polAuto();
+    return `<div class="brandcard"><div class="lg">${SHIELD}</div><b>${OFFNAME ? esc(OFFNAME) : 'Аегис'}</b><span class="muted">Войдите, чтобы продолжить</span></div>${ndaCard(ok)}<div class="${g}"><div class="sect">Вход</div><div class="card"><p class="muted" style="margin:0">Введите свой табельный номер и ПИН-код. ПИН выдаёт администратор.</p>
   <input id="lgTn" type="text" inputmode="numeric" placeholder="Табельный номер" aria-label="Табельный номер" autocomplete="off">
   <input id="lgPin" type="password" inputmode="numeric" placeholder="ПИН-код" aria-label="ПИН-код" autocomplete="off">
   <button class="btn" data-a="login">Войти</button><div class="muted" role="status">${esc(loginMsg)}</div></div>
-  <div class="sect">Администратор</div><div class="card"><input id="syPw" type="password" placeholder="Пароль администратора" value="${esc(SY.pw)}" aria-label="Пароль администратора"><div class="muted">Введите пароль, чтобы редактировать данные без ПИН.</div></div>`;
+  <div class="sect">Администратор</div><div class="card"><input id="syPw" type="password" placeholder="Пароль администратора" value="${esc(SY.pw)}" aria-label="Пароль администратора"><div class="muted">Введите пароль, чтобы редактировать данные без ПИН.</div></div></div>
+  <div class="secbadge">${SHIELD}<span>Защищено Аегис<small>защищённое соединение · вход по ПИН-коду</small></span></div>`;
 }
 function syCard() {
     if (!IS_APP)
@@ -845,7 +969,7 @@ function aggregate(rows) {
         const R = r.R == null ? '' : String(r.R).trim();
         if (R !== '' && !lk('?????-*', R))
             continue;
-        const D = r.D, K = r.K, mot = lk('Да', r.V), L = r.L, O = r.O, PU = r.P, P = PU * L;
+        const D = r.D, K = r.K, mot = lk('Да', r.V), L = r.L, O = r.O, PU = r.P, P = PU * L, tg = mot && !R.startsWith('0');
         if (mot)
             a.m[0] += O;
         const isSim = lk('Сим-карта*', D) || lk('Акционная сим-карта*', D);
@@ -856,7 +980,7 @@ function aggregate(rows) {
         }
         if (mot && lk('ШПД (Подключение)', D) && !lk('*(TV)*', K))
             a.m[2] += (lk('Роутер (Продажа)', K) || lk('Роутер (Рассрочка)', K)) ? 0.5 * L : L;
-        if (mot && lk('*Товарная группа*', D) && !R.startsWith('00'))
+        if (tg && lk('*Товарная группа*', D))
             a.m[3] += P;
         if (mot && lk('ШПД (Подключение)', D) && (lk('Роутер (Продажа)', K) || lk('Роутер (Рассрочка)', K)))
             a.m[3] += P;
@@ -864,19 +988,19 @@ function aggregate(rows) {
             for (const p of ['Аппаратная наклейка пленки*', '*Настройки*', 'Пакет настроек*', '*Страхование*', 'Лицензия/подписка'])
                 if (lk(p, D))
                     a.m[4] += P;
-            if (lk('*Товарная группа 2*', D))
+            if (tg && lk('*Товарная группа 2*', D))
                 a.m[5] += P;
         }
         if (lk('Мой Билайн', D))
             a.m[6] += L;
         if (lk('Дебетовая карта Альфа Заявка', D))
             a.m[7] += L;
-        if (lk('Дебетовая карта Альфа Транзакция', D))
+        if (mot && lk('Дебетовая карта Альфа Транзакция', D))
             a.m[8] += L;
         if (mot) {
-            if (lk('Товарная группа 1*', D) && lk('Телефон*', K))
+            if (tg && lk('Товарная группа 1*', D) && lk('Телефон*', K) && !['*Fontel*', '*Xenium*', '*BQ *', '*Nokia*'].some(x => lk(x, K)))
                 a.b[0] += P;
-            if (lk('Товарная группа*', D) && !['*Krutoff*', '*BoraSCO*', '*LuxCase*', '*vlp*'].some(x => lk(x, K))) {
+            if (tg && lk('Товарная группа*', D) && !['*Krutoff*', '*BoraSCO*', '*LuxCase*', '*vlp*', '*Zibelino*', '*Rocket*', '*Red Line*'].some(x => lk(x, K))) {
                 if (lk('*Huawei*', K))
                     a.b[1] += P;
                 if (lk('*Samsung*', K))
@@ -889,7 +1013,7 @@ function aggregate(rows) {
             if (lk('Установка приложений через Яндекс.Адаптер*', D))
                 a.b[5] += L;
             for (const p of ['*Настройки*', 'Пакет настроек*', '*Страхование*'])
-                if (lk(p, D) && !(p === '*Настройки*' && lk('*наклейк*', K)))
+                if (lk(p, D))
                     a.b[6] += P;
         }
     }
@@ -1396,6 +1520,58 @@ function fxCount(root, key) {
         requestAnimationFrame(step);
     });
 }
+/* ===== v51: «бегущие» числа везде ===== */
+const FX_UNIT = /^(\s*)([−-]?\d[\d\s  ]*(?:[.,]\d+)?)(\s*%\s*)$/;
+const FX_BARE = /^(\s*)([−-]?\d[\d\s  ]*(?:[.,]\d+)?)(\s*)$/;
+let fxRun = 0;
+function fxAuto(root) {
+    if (!root || fxReduce())
+        return;
+    const run = ++fxRun, items = [];
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(n) {
+            const p = n.parentElement;
+            if (!p || p.closest('[data-fxl],[data-fxo],input,select,textarea,button.btn,script,style,.nofx,#hello'))
+                return NodeFilter.FILTER_REJECT;
+            return /\d/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+    });
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+        const txt = n.nodeValue;
+        const m = txt.match(FX_UNIT);
+        if (!m)
+            continue;
+        const raw = m[2].replace(/[\s  ]/g, '').replace('−', '-').replace(',', '.'), to = parseFloat(raw);
+        if (!isFinite(to) || Math.abs(to) < 1)
+            continue;
+        const dm = raw.match(/\.(\d+)$/);
+        items.push({ n, to, d: dm ? dm[1].length : 0, pre: m[1], suf: m[3] || '', fin: txt });
+    }
+    if (!items.length)
+        return;
+    items.forEach((it, i) => { it.t0 = Math.min(i, 14) * 38 + 60; it.n.nodeValue = it.pre + nf(0, it.d) + it.suf; });
+    const T = performance.now(), dur = 950;
+    const step = now => {
+        if (run !== fxRun)
+            return;
+        let live = false;
+        for (const it of items) {
+            if (!it.n.isConnected)
+                continue;
+            const k = Math.max(0, Math.min(1, (now - T - it.t0) / dur));
+            if (k < 1) {
+                const e = 1 - Math.pow(1 - k, 4);
+                it.n.nodeValue = it.pre + nf(it.to * e, it.d) + it.suf;
+                live = true;
+            }
+            else
+                it.n.nodeValue = it.fin;
+        }
+        if (live)
+            requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
 function fxReveal(el, wait) {
     setTimeout(() => { try {
         if (el.isConnected && el.scrollIntoView)
@@ -1448,7 +1624,7 @@ function breakdown(kind, i) {
         const sub = x.p ? `план ${val(x.p, u, dg)} · <b class="${lv}">${pc(x.r)}</b>` : 'плана нет';
         return `<div class="dr-row${rk}${x.e.tn === S.me ? ' me' : ''}${x.f > 0 ? '' : ' zero'}" style="--i:${n + 1}"><span class="dr-rk">${n + 1}</span>
       <div><div class="dr-nm">${esc(x.e.name)}</div><div class="dr-sub">${sub}</div></div>
-      <div class="dr-v"><span data-fxo="${x.f}" data-fd="${dec}">${val(x.f, u, dg)}</span><small>${u}</small></div>
+      <div class="dr-v"><span>${val(x.f, u, dg)}</span><small>${u}</small></div>
       ${x.p ? `<div class="bar ${lv}"><i style="width:${Math.min(100, x.r * 100)}%"></i></div>` : ''}</div>`;
     }).join('');
     return `<div class="dr-h"><b>${esc(title)}</b><span>кто и сколько продал</span></div>${list}<div class="dr-tot" style="--i:${rows.length + 1}"><span>Всего по команде</span><span>${val(tot, u, dg)} ${u}${o ? ' из ' + val(o, u, dg) + ' · ' + pc(tot / o) : ''}</span></div>`;
@@ -1560,7 +1736,7 @@ function vDet() {
       <div class="xp"><div class="xpi"><div class="detail"><div class="muted">Сильная сторона: <b>${best}</b> · слабая: <b>${worst}</b></div>${ds}</div></div></div></button>`;
     }).join('');
     const nodata = S.emps.filter(e => !hasData(e)).map(e => `<div class="row" style="cursor:default"><div class="n">${e.name}</div><span class="chip">нет данных</span><div class="muted">Проверьте смену: отпуск, больничный или поздний выход.</div></div>`).join('');
-    return `<div class="stats"><div class="stat"><b data-fxl="${avg * 100}" data-fd="0" data-fs=" %">${nf(avg * 100, 0)} %</b><span>средний балл офиса</span></div><div class="stat"><b data-fxl="${rk.length}" data-fd="0">${rk.length}</b><span>сотрудников с данными</span></div></div>
+    return `<div class="stats"><div class="stat"><b data-fxl="${avg * 100}" data-fd="0" data-fs=" %">${nf(avg * 100, 0)} %</b><span>средний балл офиса</span></div><div class="stat"><b>${rk.length}</b><span>сотрудников с данными</span></div></div>
    ${actCard()}<div class="sect">Рейтинг по темпу месяца</div><div class="list">${rows}${nodata}</div>
    <p class="hint">Балл = средний % плана по 10 показателям (потолок ${nf(S.cap * 100, 0)} % на показатель). План офиса делится по часам. Решение о замене остаётся за руководителем: рейтинг не учитывает стаж, обучение и причины низких продаж. ШПД, Апельсин: малый план, одна продажа сильно двигает %.</p>`;
 }
@@ -2068,7 +2244,7 @@ const TITLES = { goals: 'Цели', det: 'Команда', brand: 'Бренды'
 const SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>';
 function updBrand() {
     const el = document.getElementById('brand');
-    if (el) el.innerHTML = SHIELD + '<span>Аегис' + (OFFNAME ? ' · ' + esc(OFFNAME) : '') + '</span>';
+    if (el) el.innerHTML = SHIELD + '<span class="nm">Аегис' + (OFFNAME ? ' · ' + esc(OFFNAME) : '') + '</span><span class="sec" role="button" tabindex="0" data-a="polOpen" title="Политика конфиденциальности"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Secured by AEGIS</span>';
 }
 const PROT_GET = k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
 const PROT_SET = (k, v) => { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) { } };
@@ -2133,12 +2309,14 @@ let animT = 0;
 function render() {
     const EMPTYADM = !S.emps.length && syOn() && !!SY.pw;
     if (!S.emps.length && !needLogin() && !EMPTYADM) {
+        ndaApply(false);
         gateView();
         return;
     }
     if (EMPTYADM)
         tab = 'set';
     if (needLogin()) {
+        ndaApply(false);
         document.body.classList.add('viewer');
         document.getElementById('title').textContent = 'Вход';
         updBrand();
@@ -2171,6 +2349,7 @@ function render() {
         if (!changed)
             vw.classList.remove('anim');
         vw.innerHTML = { goals: vGoals, brand: vBrand, det: vDet, day: vDay, hist: vHist, set: vSet }[tab]();
+        vw.insertAdjacentHTML('beforeend', polFoot());
         fxRestore();
         if (changed) {
             vw.dataset.t = key;
@@ -2180,8 +2359,15 @@ function render() {
             clearTimeout(animT);
             animT = setTimeout(() => vw.classList.remove('anim'), 1100);
             fxCount(vw, 'fxl');
+            fxAuto(vw);
+            vw.dataset.sc = S.scope;
+        }
+        else if (vw.dataset.sc !== S.scope) {   // переключили «Я / Офис»: числа снова пересчитываются
+            vw.dataset.sc = S.scope;
+            fxAuto(vw);
         }
     }
+    ndaApply(!ndaInfo());
     document.getElementById('tabs').innerHTML = EMPTYADM ? '' : TABS.filter(t => !(LK && t[0] === 'det')).map(([k, n]) => `<button data-a="tab" data-v="${k}" ${k === tab ? 'aria-current="page"' : ''}>${ICON[k]}<span>${n}</span></button>`).join('');
 }
 document.addEventListener('click', ev => {
@@ -2189,7 +2375,35 @@ document.addEventListener('click', ev => {
     if (!b)
         return;
     const a = b.dataset.a, v = b.dataset.v;
+    if (a === 'polOpen') {
+        openPol();
+        return;
+    }
+    if (a === 'polClose') {
+        closePol();
+        return;
+    }
+    if (a === 'polAccept') {
+        PROT_SET('cpu2-nda', JSON.stringify({ v: NDA_V, t: Date.now() }));
+        closePol();
+        render();
+        return;
+    }
+    if (a === 'ndaTog') {
+        if (!ndaInfo()) {   // сначала прочитать
+            openPol();
+            return;
+        }
+        PROT_SET('cpu2-nda', '');
+        render();
+        return;
+    }
     if (a === 'login') {
+        if (!ndaInfo()) {
+            loginMsg = 'Подтвердите согласие о неразглашении.';
+            render();
+            return;
+        }
         const tn = (document.getElementById('lgTn').value || '').trim(), pin = (document.getElementById('lgPin').value || '').trim();
         if (syOn() && !SY.pw) {
             if (!tn || !pin) {
