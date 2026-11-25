@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src blob: https://script.google.com https://*.googleusercontent.com; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}
+<html lang="ru"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src blob: https://api.rss2json.com https://api.allorigins.win https://corsproxy.io https://script.google.com https://*.googleusercontent.com; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}
 .medalCard{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,var(--accent-soft),var(--surface));border:1px solid var(--line);border-radius:22px;padding:12px 16px}
 .medalCard img{height:92px;width:auto;flex:none}.medalCard b{font-size:18px;display:block}
 .mini{height:22px;width:auto;vertical-align:-5px;margin-left:4px}
@@ -185,6 +185,29 @@ body.ndalock #view{filter:blur(16px) saturate(.7);opacity:.75;pointer-events:non
 #ndaov b{font-size:19px}
 #ndaov span.t{color:var(--muted);font-size:14px;line-height:1.4}
 #ndaov .btn{width:100%;margin-top:6px}
+/* Новости */
+.news{display:flex;flex-direction:column;gap:10px}
+.nhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.nhead .muted{font-size:12px}
+.nchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0 6px}
+.nchips::-webkit-scrollbar{display:none}
+.nchip{flex:none;border:0;background:var(--tile);color:var(--ink);font:600 13px var(--font);padding:10px 15px;border-radius:999px;cursor:pointer;transition:background-color .25s ease,color .25s ease,transform .15s ease}
+.nchip:active{transform:scale(.94)}
+.nchip[aria-pressed="true"]{background:var(--accent);color:#fff}
+.nref{flex:none;border:0;background:var(--tile);color:var(--ink);width:40px;height:40px;border-radius:50%;display:grid;place-items:center;cursor:pointer;transition:transform .15s ease}
+.nref:active{transform:scale(.88)}
+.nref svg{width:20px;height:20px}
+.nref.spin svg{animation:nspin .8s linear infinite}
+@keyframes nspin{to{transform:rotate(360deg)}}
+.ncard{display:block;text-decoration:none;color:inherit;background:var(--surface);border-radius:24px;box-shadow:var(--shadow);padding:16px 18px;transition:transform .2s cubic-bezier(.3,.7,.3,1);animation:rise .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*40ms)}
+.ncard:active{transform:scale(.98)}
+.ncard h3{font-size:16px;line-height:1.3;margin:0 0 8px;font-weight:650;overflow-wrap:anywhere}
+.nmeta{display:flex;gap:8px;color:var(--muted);font-size:12px;align-items:center}
+.nmeta .src{color:var(--accent);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.nskel{height:92px;border-radius:24px;background:linear-gradient(90deg,var(--tile),var(--surface),var(--tile));background-size:200% 100%;animation:nshim 1.3s linear infinite}
+@keyframes nshim{to{background-position:-200% 0}}
+.nerr{background:var(--surface);border-radius:24px;box-shadow:var(--shadow);padding:20px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+@media (max-width:380px){nav.tabs button{font-size:10px}}
 .linkbtn{background:none;border:0;padding:6px 0;color:var(--accent);font:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer}
 .tile,.stat b,.badge,.v,.dr-v,.bv,.drow b{font-variant-numeric:tabular-nums}
 .brandcard{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 18px 6px}
@@ -407,7 +430,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 56;
+const APP_VERSION = 58;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -1357,9 +1380,10 @@ const ICON = {
     brand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></svg>',
     day: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M8 15l2.5 2.5L16 13"/></svg>',
     hist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 8v4l3 2"/></svg>',
+    news: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h6M8 13h6"/></svg>',
     set: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>'
 };
-const TABS = [['goals', 'Цели'], ['det', 'Команда'], ['brand', 'Бренды'], ['day', 'На день'], ['hist', 'История'], ['set', 'Ввод']];
+const TABS = [['goals', 'Цели'], ['det', 'Команда'], ['brand', 'Бренды'], ['day', 'На день'], ['hist', 'История'], ['news', 'Новости'], ['set', 'Ввод']];
 function scopeSeg() {
     const opts = S.emps.filter(hasData).map(e => `<option value="${e.tn}" ${e.tn === S.me ? 'selected' : ''}>${e.name}</option>`).join('');
     return `<div class="seg" role="group" aria-label="Показывать"><button data-a="scope" data-v="me" aria-pressed="${S.scope === 'me'}">Я</button><button data-a="scope" data-v="office" aria-pressed="${S.scope === 'office'}">Офис</button></div>` +
@@ -2140,6 +2164,100 @@ function nowScore(who) {
     const e = S.emps.find(x => x.tn === who);
     return e && hasData(e) ? effScore(e) : null;
 }
+/* ===== Новости про Билайн ===== */
+const NEWS_TOPICS = [
+    { k: 'all', n: 'Билайн', q: 'Билайн' },
+    { k: 'biz', n: 'Связь и рынок', q: '(Билайн OR ВымпелКом) операторы связи' },
+    { k: 'sale', n: 'Акции и тарифы', q: 'Билайн тариф OR акция OR скидка' }
+];
+const NEWS_TTL = 30 * 60000;
+let NEWS = { topic: 'all', data: {}, loading: false, err: '' };
+try {
+    const c = JSON.parse(localStorage.getItem('cpu2-news') || 'null');
+    if (c && c.data)
+        NEWS.data = c.data;
+}
+catch (e) { }
+const gnUrl = q => 'https://news.google.com/rss/search?q=' + encodeURIComponent(q + ' when:14d') + '&hl=ru&gl=RU&ceid=RU:ru';
+function newsAgo(ts) {
+    if (!ts)
+        return '';
+    const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+    if (m < 2)
+        return 'только что';
+    if (m < 60)
+        return m + ' мин назад';
+    const h = Math.round(m / 60);
+    if (h < 24)
+        return h + ' ч назад';
+    const d = new Date(ts), n = new Date();
+    if (Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5) === 1)
+        return 'вчера';
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+}
+async function loadNews(force) {
+    const t = NEWS.topic, c = NEWS.data[t];
+    if (NEWS.loading || (!force && c && Date.now() - c.t < NEWS_TTL))
+        return;
+    NEWS.loading = true;
+    NEWS.err = '';
+    if (tab === 'news')
+        render();
+    try {
+        const q = NEWS_TOPICS.find(x => x.k === t).q;
+        const rss = gnUrl(q);
+        const tmo = (u, ms) => { const c = new AbortController(), id = setTimeout(() => c.abort(), ms); return fetch(u, { cache: 'no-store', signal: c.signal }).finally(() => clearTimeout(id)); };
+        const via = [
+            async () => { const j = await (await tmo('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rss), 10000)).json(); if (!j || j.status !== 'ok' || !Array.isArray(j.items)) throw 0; return j.items; },
+            async () => { const x = await (await tmo('https://api.allorigins.win/raw?url=' + encodeURIComponent(rss), 12000)).text(); const d = new DOMParser().parseFromString(x, 'text/xml'); const it = [...d.querySelectorAll('item')].map(n => ({ title: n.querySelector('title')?.textContent, link: n.querySelector('link')?.textContent, pubDate: n.querySelector('pubDate')?.textContent })); if (!it.length) throw 0; return it; },
+            async () => { const x = await (await tmo('https://corsproxy.io/?url=' + encodeURIComponent(rss), 12000)).text(); const d = new DOMParser().parseFromString(x, 'text/xml'); const it = [...d.querySelectorAll('item')].map(n => ({ title: n.querySelector('title')?.textContent, link: n.querySelector('link')?.textContent, pubDate: n.querySelector('pubDate')?.textContent })); if (!it.length) throw 0; return it; }
+        ];
+        let raw = null;
+        for (const f of via) { try { raw = await f(); break; } catch (e) { } }
+        if (!raw) throw new Error('bad');
+        const seen = new Set();
+        const items = raw.map(it => {
+            let title = String(it.title || '').trim(), src = '';
+            const m = title.match(/^(.*) - ([^-]{2,40})$/);
+            if (m) {
+                title = m[1].trim();
+                src = m[2].trim();
+            }
+            else
+                src = String(it.author || '').trim();
+            const pd = String(it.pubDate || '');
+            return { title, src, link: String(it.link || ''), ts: Date.parse(pd.replace(' ', 'T') + 'Z') || Date.parse(pd) || 0 };
+        }).filter(x => x.title && /^https?:\/\//.test(x.link) && !seen.has(x.title) && seen.add(x.title)).sort((a, b) => b.ts - a.ts).slice(0, 25);
+        NEWS.data[t] = { t: Date.now(), items };
+        try {
+            localStorage.setItem('cpu2-news', JSON.stringify({ data: NEWS.data }));
+        }
+        catch (e) { }
+    }
+    catch (e) {
+        NEWS.err = 'Не удалось загрузить новости. Проверьте интернет и повторите.';
+    }
+    NEWS.loading = false;
+    if (tab === 'news')
+        render();
+}
+function vNews() {
+    const c = NEWS.data[NEWS.topic], stale = !c || Date.now() - c.t >= NEWS_TTL;
+    if (stale && !NEWS.loading && !NEWS.err)
+        setTimeout(() => loadNews(false), 0);
+    const chips = NEWS_TOPICS.map(x => `<button class="nchip" data-a="newsTopic" data-v="${x.k}" aria-pressed="${x.k === NEWS.topic}">${x.n}</button>`).join('');
+    const REF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>';
+    let body = '';
+    if (c && c.items.length)
+        body = c.items.map((x, i) => `<a class="ncard" style="--i:${Math.min(i, 12)}" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer"><h3>${esc(x.title)}</h3><div class="nmeta">${x.src ? `<span class="src">${esc(x.src)}</span><span>·</span>` : ''}<span>${newsAgo(x.ts)}</span></div></a>`).join('');
+    else if (NEWS.loading || (!NEWS.err && stale))
+        body = '<div class="nskel"></div><div class="nskel"></div><div class="nskel"></div><div class="nskel"></div>';
+    else if (!NEWS.err)
+        body = '<div class="nerr"><span class="muted">Свежих новостей по этой теме не нашлось.</span></div>';
+    if (NEWS.err)
+        body = `<div class="nerr"><span>${esc(NEWS.err)}</span><button class="btn" data-a="newsRefresh">Повторить</button></div>` + body;
+    return `<div class="news"><div class="nhead"><div class="nchips" role="group" aria-label="Тема">${chips}</div><button class="nref ${NEWS.loading ? 'spin' : ''}" data-a="newsRefresh" aria-label="Обновить">${REF}</button></div>${body}<p class="muted" style="font-size:12px;text-align:center;margin:8px 0 0">${c ? 'Обновлено ' + newsAgo(c.t) + '. ' : ''}Заголовки из открытых источников (Google Новости). Приложение не отвечает за их содержание.</p></div>`;
+}
 function vHist() {
     const H = S.history || [];
     if (!H.length)
@@ -2240,7 +2358,7 @@ function vSet() {
     const body = { data: dataBody, plan: planBody, kpi: customCard(), team: addCard() + pinCard(), sys: sysBody }[setTab()];
     return setSeg() + body;
 }
-const TITLES = { goals: 'Цели', det: 'Команда', brand: 'Бренды', day: 'На день', hist: 'История', set: 'Ввод данных' };
+const TITLES = { goals: 'Цели', det: 'Команда', brand: 'Бренды', day: 'На день', hist: 'История', news: 'Новости', set: 'Ввод данных' };
 const SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>';
 function updBrand() {
     const el = document.getElementById('brand');
@@ -2343,12 +2461,17 @@ function render() {
     di.innerHTML = (OFFNAME ? `<b>${esc(OFFNAME)}</b> · ` : '') + (S.asof ? `Данные актуальны на <b>${fmtDay(S.asof)}</b> · ` : '') + `прошло дней <b>${S.passed} из ${S.month}</b>` + (syOn() && !SY.pw ? `<br><span class="muted">${syFail ? 'нет связи с сервером, показаны последние данные' : (syTs ? 'обновлено с сервера в ' + new Date(syTs).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : 'ждём данные с сервера')}</span>` : '');
     document.getElementById('updbar').innerHTML = noteBar() + staleBar() + updBanner();
     document.getElementById('ctrl').innerHTML = (tab === 'goals' || tab === 'brand') ? scopeSeg() : '';
+    di.parentElement.hidden = tab === 'news';
+    if (tab === 'news') {
+        di.hidden = true;
+        document.getElementById('updbar').innerHTML = '';
+    }
     {
         const vw = document.getElementById('view'), key = tab + (tab === 'day' ? DAYMODE : '') + (tab === 'set' ? setTab() : ''), changed = vw.dataset.t !== key;
         // та же вкладка (обновление данных, переключатель): снимаем класс ДО вставки, иначе блоки «въезжают» заново
         if (!changed)
             vw.classList.remove('anim');
-        vw.innerHTML = { goals: vGoals, brand: vBrand, det: vDet, day: vDay, hist: vHist, set: vSet }[tab]();
+        vw.innerHTML = { goals: vGoals, brand: vBrand, det: vDet, day: vDay, hist: vHist, news: vNews, set: vSet }[tab]();
         vw.insertAdjacentHTML('beforeend', polFoot());
         fxRestore();
         if (changed) {
@@ -2451,6 +2574,15 @@ document.addEventListener('click', ev => {
         tab = v;
         editOrder = false;
         document.getElementById('scroller').scrollTo(0, 0);
+    }
+    else if (a === 'newsTopic') {
+        NEWS.topic = v;
+        NEWS.err = '';
+    }
+    else if (a === 'newsRefresh') {
+        NEWS.err = '';
+        loadNews(true);
+        return;
     }
     else if (a === 'scope') {
         S.scope = v;
