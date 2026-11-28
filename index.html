@@ -208,6 +208,17 @@ body.ndalock #view{filter:blur(16px) saturate(.7);opacity:.75;pointer-events:non
 @keyframes nshim{to{background-position:-200% 0}}
 .nerr{background:var(--surface);border-radius:24px;box-shadow:var(--shadow);padding:20px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
 @media (max-width:380px){nav.tabs button{font-size:10px}}
+#vlock{position:fixed;inset:0;z-index:99999;background:var(--bg);color:var(--ink);display:grid;place-items:center;padding:24px;font-family:var(--font);transition:opacity .4s ease}
+#vlock.out{opacity:0;pointer-events:none}
+#vlock .vc{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;text-align:center;align-items:stretch}
+#vlock .vl{width:64px;height:64px;margin:0 auto 4px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center}
+#vlock .vl svg{width:30px;height:30px}
+#vlock h2{margin:0;font-size:22px}
+#vlock .vt{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+#vlock input{font:500 17px var(--font);color:var(--ink);background:var(--tile);border:0;border-radius:16px;padding:15px 16px;text-align:center}
+#vlock .vm{min-height:18px;color:#e5484d;font-size:13px}
+#vlock .vreset{background:none;border:0;color:var(--muted);font:500 13px var(--font);padding:8px;cursor:pointer}
+.vrow{display:flex;gap:8px;flex-wrap:wrap}
 .linkbtn{background:none;border:0;padding:6px 0;color:var(--accent);font:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer}
 .tile,.stat b,.badge,.v,.dr-v,.bv,.drow b{font-variant-numeric:tabular-nums}
 .brandcard{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 18px 6px}
@@ -422,7 +433,114 @@ nav.tabs button[aria-current="page"]{background:var(--accent-soft);color:var(--a
 
 <script src="native-bridge.js"></script>
 <script src="xlsx.full.min.js"></script>
-<script>"use strict";
+<script>(function () {
+'use strict';
+var V = 'cpu2-vault', SENS = ['planfact-office-v1', 'planfact-office-v1-g', 'cpu2-sync', 'cpu2-login', 'cpu2-oc', 'cpu2-oname'];
+var te = new TextEncoder(), td = new TextDecoder();
+var sub = (window.crypto && window.crypto.subtle) || null;
+function b64e(u) { var s = '', i; for (i = 0; i < u.length; i += 32768) s += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(s); }
+function b64d(t) { var s = atob(t), u = new Uint8Array(s.length), i; for (i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+async function pipe(u8, C) { var st = new C('gzip'), w = st.writable.getWriter(); w.write(u8); w.close(); return new Uint8Array(await new Response(st.readable).arrayBuffer()); }
+async function derive(pass, salt, it) {
+  var k = await sub.importKey('raw', te.encode(String(pass).normalize('NFKC')), 'PBKDF2', false, ['deriveKey']);
+  return sub.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: salt, iterations: it }, k, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+var VT = {
+  on: false, can: !!sub, mem: {}, key: null, salt: null, it: 600000, err: false, q: Promise.resolve(), t: 0,
+  getItem: function (k) { if (this.on) return Object.prototype.hasOwnProperty.call(this.mem, k) ? this.mem[k] : null; try { return localStorage.getItem(k); } catch (e) { return null; } },
+  setItem: function (k, v) { if (this.on) { this.mem[k] = String(v); this.sched(); } else localStorage.setItem(k, v); },
+  removeItem: function (k) { if (this.on) { delete this.mem[k]; this.sched(); } else localStorage.removeItem(k); },
+  sched: function () { var s = this; clearTimeout(s.t); s.t = setTimeout(function () { s.flush(); }, 150); },
+  flush: function () { var s = this; clearTimeout(s.t); if (!s.on) return s.q; s.q = s.q.then(function () { return s.save(); }).catch(function () { s.err = true; }); return s.q; },
+  save: async function () {
+    var raw = te.encode(JSON.stringify(this.mem)), z = 0;
+    if (typeof CompressionStream === 'function') { try { raw = await pipe(raw, CompressionStream); z = 1; } catch (e) { } }
+    var iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await sub.encrypt({ name: 'AES-GCM', iv: iv }, this.key, raw));
+    try { localStorage.setItem(V, JSON.stringify({ v: 1, it: this.it, s: b64e(this.salt), i: b64e(iv), z: z, c: b64e(ct) })); this.err = false; }
+    catch (e) { this.err = true; throw e; }
+  },
+  unlock: async function (pass) {
+    var b = JSON.parse(localStorage.getItem(V)), salt = b64d(b.s), key = await derive(pass, salt, b.it);
+    var pt = new Uint8Array(await sub.decrypt({ name: 'AES-GCM', iv: b64d(b.i) }, key, b64d(b.c)));
+    if (b.z) pt = await pipe(pt, DecompressionStream);
+    this.mem = JSON.parse(td.decode(pt)); this.key = key; this.salt = salt; this.it = b.it; this.on = true;
+  },
+  create: async function (pass) {
+    var mem = {}; SENS.forEach(function (k) { var v = null; try { v = localStorage.getItem(k); } catch (e) { } if (v !== null) mem[k] = v; });
+    var salt = crypto.getRandomValues(new Uint8Array(16)), key = await derive(pass, salt, this.it);
+    this.mem = mem; this.key = key; this.salt = salt; this.on = true;
+    try { await this.save(); } catch (e) { this.on = false; throw e; }
+    SENS.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { } });
+  },
+  disable: async function () {
+    var m = this.mem, k; for (k in m) if (Object.prototype.hasOwnProperty.call(m, k)) localStorage.setItem(k, m[k]);
+    localStorage.removeItem(V); this.on = false; this.mem = {}; this.key = null;
+  },
+  change: async function (pass) {
+    var salt = crypto.getRandomValues(new Uint8Array(16)), key = await derive(pass, salt, this.it);
+    this.salt = salt; this.key = key; await this.flush(); if (this.err) throw new Error('save');
+  }
+};
+VT.gate = gate;
+window.VAULT = VT;
+document.addEventListener('visibilitychange', function () { if (document.hidden) VT.flush(); });
+window.addEventListener('pagehide', function () { VT.flush(); });
+
+function start() {
+  var orig = window.addEventListener;
+  window.addEventListener = function (t, f, o) { if (t === 'load' && document.readyState === 'complete') { setTimeout(f, 0); return; } return orig.call(window, t, f, o); };
+  var s = document.createElement('script'); s.textContent = document.getElementById('mainjs').textContent; document.body.appendChild(s);
+  window.addEventListener = orig;
+}
+function gate(mode, cancel) {
+  return new Promise(function (done) {
+    var el = document.createElement('div'); el.id = 'vlock'; var setup = mode !== 'unlock', chg = mode === 'change';
+    el.innerHTML = '<div class="vc"><div class="vl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>' +
+      '<h2>' + (chg ? 'Новый код защиты' : setup ? 'Придумайте код защиты' : 'Введите код защиты') + '</h2>' +
+      '<p class="vt">' + (setup ? 'Код шифрует данные на этом телефоне (AES-256-GCM) и спрашивается при запуске приложения. Он нигде не хранится: если забудете, данные на телефоне придётся загрузить заново. Не короче 6 символов.' : 'Данные на телефоне зашифрованы. Код защиты спрашивается при запуске приложения.') + '</p>' +
+      '<input id="vp1" type="password" autocomplete="off" autocapitalize="off" placeholder="' + (setup ? 'Код защиты' : 'Код') + '" aria-label="Код защиты">' +
+      (setup ? '<input id="vp2" type="password" autocomplete="off" autocapitalize="off" placeholder="Повторите код" aria-label="Повторите код">' : '') +
+      '<div class="vm" role="alert"></div><button class="btn" id="vgo">' + (chg ? 'Сменить код' : setup ? 'Защитить данные' : 'Открыть') + '</button>' + (cancel ? '<button class="vreset" id="vcn">Отмена</button>' : '') +
+      (setup ? '' : '<button class="vreset" id="vrs">Забыли код?</button>') + '</div>';
+    document.body.appendChild(el);
+    var p1 = el.querySelector('#vp1'), p2 = el.querySelector('#vp2'), go = el.querySelector('#vgo'), vm = el.querySelector('.vm'), fails = 0, busy = false, armed = false;
+    function msg(t) { vm.textContent = t || ''; }
+    async function submit() {
+      if (busy) return; var a = p1.value;
+      if (setup) { if (a.length < 6) return msg('Код не короче 6 символов.'); if (a !== p2.value) return msg('Коды не совпадают.'); }
+      else if (!a) return msg('Введите код.');
+      busy = true; go.disabled = true; msg(setup ? 'Шифрую…' : 'Проверяю…');
+      try { if (chg) await VT.change(a); else if (setup) await VT.create(a); else { if (!sub) throw 0; await VT.unlock(a); } }
+      catch (e) {
+        busy = false;
+        if (setup) { go.disabled = false; return msg('Не удалось включить шифрование.'); }
+        fails++; var wait = Math.min(10, fails);
+        msg('Неверный код. Подождите ' + wait + ' с.'); p1.value = '';
+        return setTimeout(function () { go.disabled = false; msg(''); p1.focus(); }, wait * 1000);
+      }
+      el.classList.add('out'); setTimeout(function () { el.remove(); }, 450); done(true);
+    }
+    go.addEventListener('click', submit);
+    el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') submit(); });
+    var rs = el.querySelector('#vrs');
+    if (rs) rs.addEventListener('click', function () {
+      if (!armed) { armed = true; rs.textContent = 'Удалить данные на этом телефоне? Нажмите ещё раз'; return; }
+      try { localStorage.removeItem(V); SENS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { }
+      location.reload();
+    });
+    var cn = el.querySelector('#vcn'); if (cn) cn.addEventListener('click', function () { el.remove(); done(false); });
+    setTimeout(function () { p1.focus(); }, 50);
+  });
+}
+async function boot() {
+  var has = null; try { has = localStorage.getItem(V); } catch (e) { }
+  if (has) await gate('unlock');
+  start();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+<script type="text/plain" id="mainjs">"use strict";
 const DATA = { "main": { "names": ["СУП", "SIM", "ШПД", "ТВ", "ФВ", "АКС", "Мой Билайн", "Заявки Апельсин", "Транзакции Апельсин"], "office": [0, 0, 0, 0, 0, 0, 0, 0, 0], "emps": [] }, "brand": { "names": ["Телефоны", "Huawei", "Samsung", "Realme + Oppo", "Качественные SIM", "Яндекс.Адаптер", "Настройки и страховки"], "office": [0, 0, 0, 0, 0, 0, 0], "fact": {} } };
 const MAIN = [
     { n: 'СУП', u: 'УП', d: 1 }, { n: 'Gross SIM', u: 'шт.' }, { n: 'ШПД', u: 'шт.', d: 1 }, { n: 'Товарная выручка', u: 'руб.' },
@@ -430,7 +548,7 @@ const MAIN = [
 ];
 const BR = [{ u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'руб.' }, { u: 'шт.' }, { u: 'шт.' }, { u: 'руб.' }];
 const KEY = 'planfact-office-v1';
-const APP_VERSION = 58;
+const APP_VERSION = 64;
 function fresh() {
     const emps = DATA.main.emps.map(e => ({ name: e.name, tn: e.tn, hours: e.hours, m: e.fact.slice(), b: DATA.brand.fact[e.tn].slice() }));
     const now = new Date(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -439,7 +557,7 @@ function fresh() {
 }
 let S = fresh();
 try {
-    const raw = localStorage.getItem(KEY);
+    const raw = VAULT.getItem(KEY);
     if (raw) {
         const o = JSON.parse(raw);
         if (o && o.emps)
@@ -448,7 +566,7 @@ try {
 }
 catch (e) { }
 try {
-    const g = localStorage.getItem(KEY + '-g');
+    const g = VAULT.getItem(KEY + '-g');
     if (g && !S.rawG)
         S.rawG = JSON.parse(g);
 }
@@ -458,7 +576,7 @@ const IS_APP = true;
 const DEFAULT_SY = { url: 'https://script.google.com/macros/s/AKfycbz2xDT4n-yrjoW6Tl82rw8CJbX8tdmJsSMmfWPYa5n0dIEl86poaJvzTnKXFvuCf6q0/exec', key: '' };
 let SY = { url: DEFAULT_SY.url, key: DEFAULT_SY.key, pw: '' };
 try {
-    SY = Object.assign(SY, JSON.parse(localStorage.getItem('cpu2-sync') || '{}'));
+    SY = Object.assign(SY, JSON.parse(VAULT.getItem('cpu2-sync') || '{}'));
 }
 catch (e) { }
 // Переход со старой схемы (ссылка и ключ) на общую (код офиса): старые настройки сбрасываются, данные администратора остаются
@@ -468,8 +586,8 @@ try {
         MIGRATED = true;
         const wasAdmin = !!SY.pw;
         SY = { url: DEFAULT_SY.url, key: '', pw: '' };
-        localStorage.setItem('cpu2-sync', JSON.stringify(SY));
-        localStorage.removeItem('cpu2-login');
+        VAULT.setItem('cpu2-sync', JSON.stringify(SY));
+        VAULT.removeItem('cpu2-login');
         if (!wasAdmin) { S.emps = []; delete S.pins; }
     }
     else if (DEFAULT_SY.url && !/^[A-Z0-9]{4,16}$/.test(normKey(SY.key))) {
@@ -478,36 +596,36 @@ try {
 }
 catch (e) { }
 let OFFNAME = '', LASTBY = '';
-try { OFFNAME = localStorage.getItem('cpu2-oname') || ''; } catch (e) { }
+try { OFFNAME = VAULT.getItem('cpu2-oname') || ''; } catch (e) { }
 const OFFICE_HOMO = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'Х': 'X' };
 const normKey = k => String(k || '').toUpperCase().replace(/[АВЕКМНОРСТХ]/g, ch => OFFICE_HOMO[ch]).replace(/[^A-Z0-9]/g, '');
 // Данные разных офисов на одном устройстве не смешиваются: при смене кода офиса всё общее стирается
 function officeSwitched() {
     try {
-        const tag = localStorage.getItem('cpu2-oc');
+        const tag = VAULT.getItem('cpu2-oc');
         if (tag && tag !== normKey(SY.key)) { resetForOffice(); return true; }
     } catch (e) { }
     return false;
 }
-function setOfficeTag() { try { localStorage.setItem('cpu2-oc', normKey(SY.key)); } catch (e) { } }
+function setOfficeTag() { try { VAULT.setItem('cpu2-oc', normKey(SY.key)); } catch (e) { } }
 function resetForOffice() {
     const f = fresh();
     for (const k of SHARED) S[k] = f[k];
     delete S.pins;
     S.rawG = undefined;
-    try { localStorage.removeItem(KEY + '-g'); } catch (e) { }
+    try { VAULT.removeItem(KEY + '-g'); } catch (e) { }
     LOGIN = null; SRVLOCK = false; syTs = 0; lastSent = ''; OFFNAME = '';
-    try { localStorage.removeItem('cpu2-login'); localStorage.removeItem('cpu2-oname'); } catch (e) { }
+    try { VAULT.removeItem('cpu2-login'); VAULT.removeItem('cpu2-oname'); } catch (e) { }
     save(true);
 }
-try { if (!localStorage.getItem('cpu2-oc') && S.emps.length && /^[A-Z0-9]{4,16}$/.test(normKey(SY.key))) setOfficeTag(); } catch (e) { }
+try { if (!VAULT.getItem('cpu2-oc') && S.emps.length && /^[A-Z0-9]{4,16}$/.test(normKey(SY.key))) setOfficeTag(); } catch (e) { }
 let syMsg = '', lastSent = '', pushT = null;
 const syOn = () => IS_APP && SY.url && SY.key;
 const canEdit = () => !syOn() || !!SY.pw;
 let syTs = 0, syFail = false;
 let LOGIN = null;
 try {
-    LOGIN = JSON.parse(localStorage.getItem('cpu2-login') || 'null');
+    LOGIN = JSON.parse(VAULT.getItem('cpu2-login') || 'null');
 }
 catch (e) { }
 const hasPins = () => S.pins && Object.values(S.pins).some(x => String(x || '').length > 0);
@@ -567,20 +685,20 @@ function persist() {
     delete rest.rawG;
     let ok = true;
     try {
-        localStorage.setItem(KEY, JSON.stringify(rest));
+        VAULT.setItem(KEY, JSON.stringify(rest));
     }
     catch (e) {
         ok = false;
     }
     try {
         if (S.rawG)
-            localStorage.setItem(KEY + '-g', JSON.stringify(S.rawG));
+            VAULT.setItem(KEY + '-g', JSON.stringify(S.rawG));
         else
-            localStorage.removeItem(KEY + '-g');
+            VAULT.removeItem(KEY + '-g');
     }
     catch (e) {
         try {
-            localStorage.removeItem(KEY + '-g');
+            VAULT.removeItem(KEY + '-g');
         }
         catch (_) { }
     }
@@ -633,7 +751,7 @@ function pull(silent) {
             LOGIN = null;
             SRVLOCK = true;
             try {
-                localStorage.removeItem('cpu2-login');
+                VAULT.removeItem('cpu2-login');
             }
             catch (e) { }
             loginMsg = 'Неверный табельный номер или ПИН.';
@@ -650,8 +768,8 @@ function pull(silent) {
         if (!j.ok)
             throw new Error(j.error === 'key' ? 'неверный код офиса' : 'ответ сервера');
         try {
-            localStorage.setItem('cpu2-oc', normKey(SY.key));
-            if (j.office) { OFFNAME = j.office; localStorage.setItem('cpu2-oname', OFFNAME); }
+            VAULT.setItem('cpu2-oc', normKey(SY.key));
+            if (j.office) { OFFNAME = j.office; VAULT.setItem('cpu2-oname', OFFNAME); }
             if (j.by !== undefined) LASTBY = j.by;
         } catch (e) { }
         if (j.locked) {
@@ -669,7 +787,7 @@ function pull(silent) {
         if (LOGIN && LOGIN.tn && !SY.pw && !LOGIN.srv) {
             LOGIN.srv = true;
             try {
-                localStorage.setItem('cpu2-login', JSON.stringify(LOGIN));
+                VAULT.setItem('cpu2-login', JSON.stringify(LOGIN));
             }
             catch (e) { }
             loginMsg = '';
@@ -724,7 +842,7 @@ function push(force) {
     if (!S.emps.length)
         return;
     let tagged = true;
-    try { tagged = !!localStorage.getItem('cpu2-oc'); } catch (e) { }
+    try { tagged = !!VAULT.getItem('cpu2-oc'); } catch (e) { }
     if (!tagged && !PUSHOK) {
         if (force) {
             PUSHOK = true;
@@ -743,7 +861,7 @@ function push(force) {
             setOfficeTag();
             lastSent = body;
             if (j.by) LASTBY = j.by;
-            if (j.office) { OFFNAME = j.office; try { localStorage.setItem('cpu2-oname', OFFNAME); } catch (e) { } }
+            if (j.office) { OFFNAME = j.office; try { VAULT.setItem('cpu2-oname', OFFNAME); } catch (e) { } }
             syMsg = 'Отправлено на сервер: ' + new Date(j.ts).toLocaleString('ru-RU') + (OFFNAME ? '. Офис «' + OFFNAME + '»' : '') + (j.by ? ', вход: ' + j.by : '') + '.';
         }
         else
@@ -751,6 +869,19 @@ function push(force) {
         softRender();
     }).catch(e => { syMsg = 'Не удалось отправить: ' + e.message; softRender(); });
 }
+const SAFE = h => {
+    const t = document.createElement('template');
+    t.innerHTML = h;
+    t.content.querySelectorAll('script,iframe,object,embed,link,meta,base,form,style,frame,applet').forEach(n => n.remove());
+    t.content.querySelectorAll('*').forEach(el => {
+        for (const a of [...el.attributes]) {
+            const n = a.name.toLowerCase();
+            if (n.startsWith('on') || n === 'srcdoc' || n === 'formaction' || ((n === 'href' || n === 'src' || n === 'xlink:href' || n === 'action') && /^\s*(javascript|vbscript|data:text\/html)/i.test(a.value)))
+                el.removeAttribute(a.name);
+        }
+    });
+    return t.innerHTML;
+};
 const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 function updBanner() {
     const u = S.upd;
@@ -864,7 +995,7 @@ const POL_HTML = `
     <p><b>Неразглашение</b>Не передавайте данные из приложения посторонним, не публикуйте и не пересылайте скриншоты и отчёты за пределы офиса без разрешения руководителя.</p>
     <p><b>Доступ</b>Входите только под своим табельным номером и ПИН-кодом и не сообщайте ПИН другим. Все действия выполняются от вашего имени.</p>
     <p><b>Учёт входов</b>Приложение фиксирует время входа и последней активности сотрудника, чтобы администратор видел, кто работает с данными.</p>
-    <p><b>Защита</b>Данные передаются по защищённому соединению (HTTPS), вход защищён ПИН-кодом, в приложении доступна блокировка отпечатком или лицом.</p>
+    <p><b>Защита</b>Данные передаются по защищённому соединению (HTTPS), вход защищён ПИН-кодом, в приложении доступна блокировка отпечатком или лицом.@@VAULT@@</p>
     <p><b>Ответственность</b>Нарушение этих условий может повлечь меры по правилам работодателя.</p>`;
 let polAutoDone = false;
 const LOCKICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -897,7 +1028,7 @@ function openPol() {
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-label', 'Политика конфиденциальности');
-    el.innerHTML = `<div class="pov" data-a="polClose"></div><div class="pn"><div class="grab"></div><h2>Политика конфиденциальности</h2><div class="pv">${j ? 'Согласие дано ' + when : 'Прочитайте и подтвердите, чтобы продолжить'}</div><div class="pb">${POL_HTML}</div>
+    el.innerHTML = `<div class="pov" data-a="polClose"></div><div class="pn"><div class="grab"></div><h2>Политика конфиденциальности</h2><div class="pv">${j ? 'Согласие дано ' + when : 'Прочитайте и подтвердите, чтобы продолжить'}</div><div class="pb">${POL_HTML.replace('@@VAULT@@', VAULT.on ? ' Данные на этом телефоне зашифрованы (AES-256-GCM), код защиты запрашивается при запуске приложения.' : '')}</div>
     <div class="pact">${j ? '<button class="btn" data-a="polClose">Закрыть</button>' : '<button class="btn ghost" data-a="polClose">Позже</button><button class="btn" data-a="polAccept">Прочитал(а), принимаю</button>'}</div></div>`;
     document.body.appendChild(el);
     void el.offsetWidth;
@@ -947,7 +1078,7 @@ function syCard() {
   <input id="syKey" type="text" placeholder="Код офиса (например 7A79000)" value="${esc(SY.key)}" maxlength="16" autocapitalize="characters" autocomplete="off" aria-label="Код офиса">
   <input id="syPw" type="password" placeholder="Пароль администратора (только у вас)" value="${esc(SY.pw)}" aria-label="Пароль администратора">
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-a="pull">Забрать данные</button>${SY.pw ? '<button class="btn ghost" data-a="push">Отправить данные</button>' : ''}${SY.pw && S.emps.length ? '<button class="btn ghost" data-a="wipeLocal">Очистить данные телефона</button>' : ''}</div>
-  <div class="muted" role="status">${syMsg || (syOn() ? (SY.pw ? 'Режим администратора: изменения уходят на сервер сами.' : 'Режим просмотра: данные подтягиваются сами каждую минуту.') : 'Введите код офиса.')}</div></div>`;
+  <div class="muted" role="status">${syMsg ? esc(syMsg) : (syOn() ? (SY.pw ? 'Режим администратора: изменения уходят на сервер сами.' : 'Режим просмотра: данные подтягиваются сами каждую минуту.') : 'Введите код офиса.')}</div></div>`;
 }
 let openGoal = null, openBrand = null;
 let tab = 'goals', openEmp = null, editOrder = false, addMsg = '', delArm = null;
@@ -1675,7 +1806,7 @@ function fxOpenDrawer(tile, i, animate) {
     const d = document.createElement('div');
     d.className = 'drawer xp';
     d.dataset.for = String(i);
-    d.innerHTML = `<div class="xpi"><div class="dr-body">${breakdown('m', i)}</div></div>`;
+    d.innerHTML = SAFE(`<div class="xpi"><div class="dr-body">${breakdown('m', i)}</div></div>`);
     fxPlaceDrawer(d, tile);
     tile.classList.add('sel');
     tile.setAttribute('aria-expanded', 'true');
@@ -2205,15 +2336,28 @@ async function loadNews(force) {
         render();
     try {
         const q = NEWS_TOPICS.find(x => x.k === t).q;
-        const rss = gnUrl(q);
+        const feeds = [gnUrl(q), 'https://www.bing.com/news/search?q=' + encodeURIComponent(q.replace(/[()]/g, '')) + '&format=rss&setlang=ru&cc=ru'];
         const tmo = (u, ms) => { const c = new AbortController(), id = setTimeout(() => c.abort(), ms); return fetch(u, { cache: 'no-store', signal: c.signal }).finally(() => clearTimeout(id)); };
-        const via = [
-            async () => { const j = await (await tmo('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rss), 10000)).json(); if (!j || j.status !== 'ok' || !Array.isArray(j.items)) throw 0; return j.items; },
-            async () => { const x = await (await tmo('https://api.allorigins.win/raw?url=' + encodeURIComponent(rss), 12000)).text(); const d = new DOMParser().parseFromString(x, 'text/xml'); const it = [...d.querySelectorAll('item')].map(n => ({ title: n.querySelector('title')?.textContent, link: n.querySelector('link')?.textContent, pubDate: n.querySelector('pubDate')?.textContent })); if (!it.length) throw 0; return it; },
-            async () => { const x = await (await tmo('https://corsproxy.io/?url=' + encodeURIComponent(rss), 12000)).text(); const d = new DOMParser().parseFromString(x, 'text/xml'); const it = [...d.querySelectorAll('item')].map(n => ({ title: n.querySelector('title')?.textContent, link: n.querySelector('link')?.textContent, pubDate: n.querySelector('pubDate')?.textContent })); if (!it.length) throw 0; return it; }
+        const xml = x => { const d = new DOMParser().parseFromString(x, 'text/xml'); const it = [...d.querySelectorAll('item')].map(n => ({ title: n.querySelector('title')?.textContent, link: n.querySelector('link')?.textContent, pubDate: n.querySelector('pubDate')?.textContent, author: (n.getElementsByTagName('News:Source')[0] || {}).textContent })); if (!it.length) throw new Error('пусто'); return it; };
+        const px = [
+            ['rss2json', async r => { const j = await (await tmo('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(r), 10000)).json(); if (!j || j.status !== 'ok' || !j.items || !j.items.length) throw new Error('пусто'); return j.items; }],
+            ['allorigins', async r => xml(await (await tmo('https://api.allorigins.win/raw?url=' + encodeURIComponent(r), 12000)).text())],
+            ['corsproxy', async r => xml(await (await tmo('https://corsproxy.io/?url=' + encodeURIComponent(r), 12000)).text())]
         ];
-        let raw = null;
-        for (const f of via) { try { raw = await f(); break; } catch (e) { } }
+        const errsN = [];
+        const jobs = [];
+        if (SY.url && SY.key)
+            jobs.push((async () => {
+                const c = new AbortController(), id = setTimeout(() => c.abort(), 15000);
+                try {
+                    const j = await (await fetch(SY.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'news', k: SY.key, q }), signal: c.signal })).json();
+                    if (!j || !j.ok || !j.items || !j.items.length) throw new Error('нет на сервере');
+                    return j.items;
+                }
+                finally { clearTimeout(id); }
+            })().catch(e => { errsN.push('сервер: ' + (e && e.name === 'AbortError' ? 'нет ответа' : (e && e.message) || 'ошибка')); throw e; }));
+        feeds.forEach((r, fi) => px.forEach(([nm, f]) => jobs.push(f(r).catch(e => { errsN.push((fi ? 'bing/' : 'google/') + nm + ': ' + (e && e.name === 'AbortError' ? 'нет ответа' : (e && e.message) || 'ошибка')); throw e; }))));
+        const raw = await Promise.any(jobs).catch(() => { NEWS.diag = errsN.join('; '); return null; });
         if (!raw) throw new Error('bad');
         const seen = new Set();
         const items = raw.map(it => {
@@ -2235,7 +2379,7 @@ async function loadNews(force) {
         catch (e) { }
     }
     catch (e) {
-        NEWS.err = 'Не удалось загрузить новости. Проверьте интернет и повторите.';
+        NEWS.err = 'Не удалось загрузить новости. Проверьте интернет и повторите.' + (NEWS.diag ? ' (' + NEWS.diag + ')' : '');
     }
     NEWS.loading = false;
     if (tab === 'news')
@@ -2255,7 +2399,13 @@ function vNews() {
     else if (!NEWS.err)
         body = '<div class="nerr"><span class="muted">Свежих новостей по этой теме не нашлось.</span></div>';
     if (NEWS.err)
-        body = `<div class="nerr"><span>${esc(NEWS.err)}</span><button class="btn" data-a="newsRefresh">Повторить</button></div>` + body;
+    {
+        const tq = encodeURIComponent(NEWS_TOPICS.find(x => x.k === NEWS.topic).q.replace(/[()]/g, '')), L = (n, d, u, i) => `<a class="ncard" style="--i:${i}" href="${u}" target="_blank" rel="noopener noreferrer"><h3>${n}</h3><div class="nmeta"><span>${d}</span></div></a>`;
+        body = `<div class="nerr"><span>Лента не загрузилась в приложении. Откройте свежие новости в браузере:</span><button class="btn" data-a="newsRefresh">Повторить</button></div>` +
+            L('Google Новости', 'Свежие новости по теме', 'https://news.google.com/search?q=' + tq + '&hl=ru&gl=RU&ceid=RU:ru', 1) +
+            L('Яндекс Новости', 'Поиск по новостям', 'https://yandex.ru/news/search?text=' + tq, 2) +
+            L('Bing Новости', 'Поиск по новостям', 'https://www.bing.com/news/search?q=' + tq + '&setlang=ru', 3) + body;
+    }
     return `<div class="news"><div class="nhead"><div class="nchips" role="group" aria-label="Тема">${chips}</div><button class="nref ${NEWS.loading ? 'spin' : ''}" data-a="newsRefresh" aria-label="Обновить">${REF}</button></div>${body}<p class="muted" style="font-size:12px;text-align:center;margin:8px 0 0">${c ? 'Обновлено ' + newsAgo(c.t) + '. ' : ''}Заголовки из открытых источников (Google Новости). Приложение не отвечает за их содержание.</p></div>`;
 }
 function vHist() {
@@ -2342,7 +2492,7 @@ function vSet() {
         MAIN.map((m, i) => `<div class="field"><span>${m.n}, факт</span>${num(`emps.${ei}.m.${i}`, e.m[i])}</div>`).join('') +
         DATA.brand.names.map((n, i) => `<div class="field"><span>${n}, факт</span>${num(`emps.${ei}.b.${i}`, e.b[i])}</div>`).join('') + '</div>').join('');
     if (!canEdit())
-        return themeCard() + (window.nativeCard ? nativeCard() : '') + (lockTn() ? logoutCard() : syCard()) + `<p class="hint">Режим просмотра: планы и данные задаёт администратор, они подтягиваются сами.</p>`;
+        return vaultCard() + themeCard() + (window.nativeCard ? nativeCard() : '') + (lockTn() ? logoutCard() : syCard()) + `<p class="hint">Режим просмотра: планы и данные задаёт администратор, они подтягиваются сами.</p>`;
     const planBody = `<div class="sect">Период</div><div class="list"><div class="switch"><span>Прошло дней<br><span class="muted">обновляйте после закрытия дня</span></span><div class="stepper"><button data-a="days" data-v="-1" aria-label="Меньше">−</button><b>${S.passed}</b><button data-a="days" data-v="1" aria-label="Больше">+</button></div></div>
    <div class="field"><span>Дней в месяце</span>${num('month', S.month, 1)}</div><div class="field"><span>Цель по умолчанию, % плана</span>${num('targetPct', Math.round(S.target * 100), 1)}</div></div>
    <div class="sect">Цель по каждому показателю, % плана</div><p class="hint">Например СУП 100, ФВ 110, Huawei 150. Пустое поле = цель по умолчанию (${nf(S.target * 100, 0)} %).</p>
@@ -2354,7 +2504,7 @@ function vSet() {
    ${manSec()}`;
     const dataBody = impCard() + histCard() + `
    <div class="sect">Факт по сотрудникам</div><p class="hint">Данные из вашей таблицы на момент выгрузки. Исправьте цифры вручную. Изменения сохраняются на этом устройстве.</p>${ef}`;
-    const sysBody = themeCard() + (window.nativeCard ? nativeCard() : '') + staleCard() + syCard() + updCard();
+    const sysBody = vaultCard() + themeCard() + (window.nativeCard ? nativeCard() : '') + staleCard() + syCard() + updCard();
     const body = { data: dataBody, plan: planBody, kpi: customCard(), team: addCard() + pinCard(), sys: sysBody }[setTab()];
     return setSeg() + body;
 }
@@ -2400,6 +2550,20 @@ document.addEventListener('visibilitychange', () => {
         setTimeout(showHello, window.IS_NATIVE ? 700 : 0);
     hiddenAt = 0;
 });
+function vaultCard() {
+    const V = window.VAULT;
+    if (!V)
+        return '';
+    let inner;
+    if (!V.can)
+        inner = '<span class="muted">Шифрование недоступно на этом устройстве (нет защищённого режима браузера).</span>';
+    else if (V.on)
+        inner = `<span>Включено: данные на телефоне зашифрованы<br><span class="muted">AES-256-GCM, ключ из вашего кода (PBKDF2-SHA256, 600 000 итераций). Код спрашивается при запуске. Забытый код восстановить нельзя. Пока шифрование включено, адрес сервера и вход не передаются в фоновые уведомления Android, они отключены.</span></span><div class="vrow"><button class="btn ghost" data-a="vaultLock">Заблокировать</button><button class="btn ghost" data-a="vaultChange">Сменить код</button><button class="btn ghost" data-a="vaultOff">${vaultOffArm ? 'Нажмите ещё раз' : 'Выключить'}</button></div>`;
+    else
+        inner = '<span>Не включено<br><span class="muted">Шифрует на этом телефоне ПИН, вход и данные продаж (AES-256-GCM). Нужен свой код защиты, он спрашивается при запуске.</span></span><div class="vrow"><button class="btn" data-a="vaultOn">Включить шифрование</button></div>';
+    return `<div class="sect">Защита данных</div><div class="card" style="gap:12px">${inner}</div>`;
+}
+let vaultOffArm = false;
 function helloCard() {
     const off = PROT_GET('cpu2-hello-off') === '1';
     return `<div class="sect">Приветствие</div><div class="card" style="gap:10px"><div class="switch" style="padding:0"><span>Показывать приветствие<br><span class="muted">«Доброе утро, Анна» при открытии и после разблокировки</span></span><button class="tog" data-a="helloTog" aria-pressed="${!off}" aria-label="Показывать приветствие"></button></div>${LOGIN ? '' : `<input id="helloName" type="text" placeholder="Как к вам обращаться (имя)" value="${esc(PROT_GET('cpu2-hello-name'))}" maxlength="30" aria-label="Ваше имя">`}</div>`;
@@ -2440,7 +2604,7 @@ function render() {
         updBrand();
         ['dayinfo', 'updbar', 'ctrl', 'tabs'].forEach(i => document.getElementById(i).innerHTML = '');
         document.getElementById('dayinfo').hidden = true;
-        document.getElementById('view').innerHTML = loginView();
+        document.getElementById('view').innerHTML = SAFE(loginView());
         return;
     }
     const LK = lockTn();
@@ -2458,8 +2622,8 @@ function render() {
     const di = document.getElementById('dayinfo');
     di.hidden = false;
     di.dataset.f = '1';
-    di.innerHTML = (OFFNAME ? `<b>${esc(OFFNAME)}</b> · ` : '') + (S.asof ? `Данные актуальны на <b>${fmtDay(S.asof)}</b> · ` : '') + `прошло дней <b>${S.passed} из ${S.month}</b>` + (syOn() && !SY.pw ? `<br><span class="muted">${syFail ? 'нет связи с сервером, показаны последние данные' : (syTs ? 'обновлено с сервера в ' + new Date(syTs).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : 'ждём данные с сервера')}</span>` : '');
-    document.getElementById('updbar').innerHTML = noteBar() + staleBar() + updBanner();
+    di.innerHTML = SAFE((OFFNAME ? `<b>${esc(OFFNAME)}</b> · ` : '') + (S.asof ? `Данные актуальны на <b>${fmtDay(S.asof)}</b> · ` : '') + `прошло дней <b>${S.passed} из ${S.month}</b>` + (syOn() && !SY.pw ? `<br><span class="muted">${syFail ? 'нет связи с сервером, показаны последние данные' : (syTs ? 'обновлено с сервера в ' + new Date(syTs).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : 'ждём данные с сервера')}</span>` : ''));
+    document.getElementById('updbar').innerHTML = SAFE(noteBar() + staleBar() + updBanner());
     document.getElementById('ctrl').innerHTML = (tab === 'goals' || tab === 'brand') ? scopeSeg() : '';
     di.parentElement.hidden = tab === 'news';
     if (tab === 'news') {
@@ -2471,7 +2635,7 @@ function render() {
         // та же вкладка (обновление данных, переключатель): снимаем класс ДО вставки, иначе блоки «въезжают» заново
         if (!changed)
             vw.classList.remove('anim');
-        vw.innerHTML = { goals: vGoals, brand: vBrand, det: vDet, day: vDay, hist: vHist, news: vNews, set: vSet }[tab]();
+        vw.innerHTML = SAFE({ goals: vGoals, brand: vBrand, det: vDet, day: vDay, hist: vHist, news: vNews, set: vSet }[tab]());
         vw.insertAdjacentHTML('beforeend', polFoot());
         fxRestore();
         if (changed) {
@@ -2543,7 +2707,7 @@ document.addEventListener('click', ev => {
         if (S.pins && String(S.pins[tn] || '') !== '' && String(S.pins[tn]) === pin && S.emps.some(e => e.tn === tn)) {
             LOGIN = { tn, pin };
             try {
-                localStorage.setItem('cpu2-login', JSON.stringify(LOGIN));
+                VAULT.setItem('cpu2-login', JSON.stringify(LOGIN));
             }
             catch (e) { }
             loginMsg = '';
@@ -2557,7 +2721,7 @@ document.addEventListener('click', ev => {
     if (a === 'logout') {
         LOGIN = null;
         try {
-            localStorage.removeItem('cpu2-login');
+            VAULT.removeItem('cpu2-login');
         }
         catch (e) { }
         render();
@@ -2574,6 +2738,28 @@ document.addEventListener('click', ev => {
         tab = v;
         editOrder = false;
         document.getElementById('scroller').scrollTo(0, 0);
+    }
+    else if (a === 'vaultOn') {
+        VAULT.gate('setup', true).then(ok => { if (ok) render(); });
+        return;
+    }
+    else if (a === 'vaultChange') {
+        VAULT.gate('change', true);
+        return;
+    }
+    else if (a === 'vaultLock') {
+        VAULT.flush().then(() => location.reload());
+        return;
+    }
+    else if (a === 'vaultOff') {
+        if (!vaultOffArm) {
+            vaultOffArm = true;
+            setTimeout(() => { vaultOffArm = false; if (tab === 'set') render(); }, 4000);
+        }
+        else {
+            vaultOffArm = false;
+            VAULT.disable();
+        }
     }
     else if (a === 'newsTopic') {
         NEWS.topic = v;
@@ -2792,8 +2978,8 @@ document.addEventListener('click', ev => {
         if (hh)
             S.history = hh;
         try {
-            localStorage.removeItem(KEY);
-            localStorage.removeItem(KEY + '-g');
+            VAULT.removeItem(KEY);
+            VAULT.removeItem(KEY + '-g');
         }
         catch (e) { }
     }
@@ -2817,7 +3003,7 @@ document.addEventListener('change', ev => {
     if (t.id === 'syUrl' || t.id === 'syKey' || t.id === 'syPw') {
         SY[{ syUrl: 'url', syKey: 'key', syPw: 'pw' }[t.id]] = t.id === 'syKey' ? normKey(t.value) : t.value.trim();
         try {
-            localStorage.setItem('cpu2-sync', JSON.stringify(SY));
+            VAULT.setItem('cpu2-sync', JSON.stringify(SY));
         }
         catch (e) { }
         syMsg = '';
